@@ -1,0 +1,75 @@
+{
+  "name": "projects/studio-285787437-bc95b/sites/studio-285787437-bc95b/customDomains/auto.radbitstudios.co.zw",
+  "createTime": "2026-10-04T20:34:33.768639605Z",
+  "updateTime": "2026-10-04T20:34:33.768639689Z",
+  "etag": "W/\"1791146073\"",
+  "hostState": "HOST_UNHOSTED",
+  "ownershipState": "OWNERSHIP_MISSING",
+  "requiredDnsUpdates": {
+    "discovered": [
+      {
+        "domainName": "auto.radbitstudios.co.zw",
+        "records": [
+          {
+            "domainName": "auto.radbitstudios.co.zw",
+            "type": "CNAME",
+            "rdata": "studio-285787437-bc95b.web.app"
+          }
+        ]
+      }
+    ],
+    "desired": [
+      {
+        "domainName": "auto.radbitstudios.co.zw",
+        "records": [
+          {
+            "domainName": "auto.radbitstudios.co.zw",
+            "type": "CNAME",
+            "rdata": "studio-285787437-bc95b.web.app"
+          }
+        ]
+      }
+    ],
+    "checkTime": "2026-10-04T21:45:18.159256154Z"
+  },
+  "certPreference": "PROJECT_GROUPED",
+  "cert": {
+    "type": "TEMPORARY",
+    "state": "CERT_VALIDATING",
+    "verification": {
+      "dns": {
+        "discovered": [
+          {
+            "domainName": "_acme-challenge.auto.radbitstudios.co.zw",
+            "records": [
+              {
+                "domainName": "_acme-challenge.auto.radbitstudios.co.zw",
+                "type": "TXT",
+                "rdata": "NotBkHEu4g-vcalJGA8UJet_lIS7KOjUiHoSE2b5jzI"
+              }
+            ]
+          }
+        ],
+        "desired": [
+          {
+            "domainName": "_acme-challenge.auto.radbitstudios.co.zw",
+            "records": [
+              {
+                "domainName": "_acme-challenge.auto.radbitstudios.co.zw",
+                "type": "TXT",
+                "rdata": "NotBkHEu4g-vcalJGA8UJet_lIS7KOjUiHoSE2b5jzI",
+                "requiredAction": "ADD"
+              }
+            ]
+          }
+        ],
+        "checkTime": "2026-10-04T21:45:18.495386751Z"
+      },
+      "http": {
+        "path": "/.well-known/acme-challenge/lGe-DI4OaMPjyBqjg63cPkUyFtO30e4VCrV7tZj5nlWi-ay3CYvUJJJPusNjc3Ko",
+        "desired": "lGe-DI4OaMPjyBqjg63cPkUyFtO30e4VCrV7tZj5nlWi-ay3CYvUJJJPusNjc3Ko.M0-GObbb5ePi63ASQsPKBrDqfgayGnOWpyrEF0nHqug",
+        "lastCheckTime": "2026-10-04T21:45:18.495386751Z"
+      }
+    }
+  }
+}

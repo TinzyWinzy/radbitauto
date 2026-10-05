@@ -1,0 +1,175 @@
+System Architecture Document: Multi-Tenant Vehicle Import Customer Portal
+
+1. Executive Architectural Overview
+
+The Zimbabwean automotive sector is currently navigating a period of unprecedented expansion, with passenger vehicle imports rising from USD 2.5 million per month in 2023 to a projected USD 6 million by March 2026. This architecture provides the technical blueprint for a centralized "System of Record" designed to replace the current "System of Engagement"—characterized by fragmented WhatsApp threads and manual document handling—with a structured, data-driven import dashboard.
+
+Technical Objective: To consolidate logistical, financial, and regulatory data into a single source of truth, thereby reducing the logistical latency inherent in manual cross-border operations.
+
+Operational Pain Points Solved:
+
+* Visibility Gap: Eliminates informational asymmetry regarding vehicle location and import status.
+* Payment Fragmentation: Centralizes quotation management, multi-currency payment history, and outstanding balance tracking.
+* Document Centralization: Provides a secure repository for essential certificates, mitigating the risk of lost physical documentation.
+* Communication Inefficiency: Streamlines customer enquiries through deep-linked, structured notification protocols.
+* Regulatory Compliance: Automates the validation of vehicle eligibility based on age and pre-shipment inspection requirements.
+
+This architecture bridges the gap between the informal "shadow cash economy" and formal business systems, providing the technical market requirements necessary for scalability in the Zimbabwean automotive sector.
+
+2. Market Context & System Rationale
+
+The architecture must navigate specific local regulatory hurdles and economic conditions, including volatile trade deficits and strict import bans.
+
+Market Realities
+
+Based on ZimStat and OEC World data, the system is optimized for the following volume and sourcing trends:
+
+Metric	Detail
+Market Dominance	Used imports (>95%) vs. New vehicles (<2,700 units/year)
+Primary Sourcing	South Africa (61M), Japan (50M), United Kingdom ($5.53M)
+Import Volume Trends	Sustained growth to USD 6M/month by Q1 2026
+Primary Transit Corridors	Durban (RSA), Beira (MOZ), and Walvis Bay (NAM)
+
+Compliance Validation Layer
+
+The system implements a mandatory "Logic Gate" layer to enforce Statutory Instruments (SI 54 of 2024 and SI 59 of 2026) and Public Notice 84 of 2024.
+
+* Age-Restriction Logic: The system automatically flags cases for "Import License Required" if the manufacture_year exceeds 10 years for passenger cars, double-cabs, and vans.
+* Exemption Handling: Logic gates allow overrides for heavy commercial haulage trucks, tractors, and "Antique/Classic" vehicles (25+ years) provided they meet historical preservation criteria.
+* Pre-Shipment Inspection (PVoC): The architecture enforces the June 2022 mandate requiring EAA (East Africa Automobile Services) certificates for all Japanese imports before status can advance to "Shipped."
+
+3. Multi-Tenant Logical Architecture
+
+To support diverse clients such as Eddy Customs and Muchy Motors on a single codebase, we employ a multi-tenant isolation strategy that ensures strict data privacy and branding autonomy.
+
+Tenant Configuration Model
+
+Administrators can configure unique tenant profiles including:
+
+* Branding: Logo, custom Case ID Prefix (e.g., EC- vs MM-), and UI color palettes.
+* Local Contact: Dedicated WhatsApp numbers and branch physical addresses.
+* Operational Logic: Toggleable import stages and specific payment instructions (EcoCash, InnBucks, Bank).
+
+Absolute Isolation via Row Level Security (RLS)
+
+Data integrity is maintained through Row Level Security (RLS) within the PostgreSQL schema. This is not merely an API-level filter; the database policy mandates that every query is strictly scoped to the company_id of the authenticated tenant. This ensures that a Muchy Motors operative cannot query Eddy Customs’ records even in the event of an application-layer compromise.
+
+4. Frontend Architecture: Offline-First PWA
+
+The frontend is a Progressive Web App (PWA) designed for a "Data-Light Architecture," catering to the high data costs and intermittent connectivity found along transit corridors like Beitbridge.
+
+Technical PWA Specifications
+
+* Service Workers: Implements "Offline Shell" caching to ensure the dashboard structure loads instantly regardless of network state.
+* Web App Manifest: Facilitates Android-optimized home screen installation to bypass app store frictions.
+* Latency-Agnostic UI: Background sync allows staff at border posts to update status offline, with automatic reconciliation once connectivity is restored.
+
+5-Second Answer UX Rule
+
+The visual hierarchy is built around operational utility rather than marketing. Upon login, a customer must be able to answer the following within 5 seconds:
+
+1. Status: High-contrast indicator of the current import milestone.
+2. Financial Position: Clear "Total Due" vs. "Paid" balance.
+3. Document Availability: Instant access to the Bill of Lading or EAA certificate.
+
+5. Import Workflow & State Machine Design
+
+The system treats the 24–34 day shipping window as a formalized state machine to eliminate operational ambiguity.
+
+14-Stage Workflow with Transition Guards
+
+The following sequence captures metadata including Status, Date Completed, and Staff Notes. Transition Guards are enforced to prevent "milestone jumping."
+
+1. Enquiry
+2. Quotation
+3. Payment Confirmed
+4. Vehicle Sourced
+5. Purchase Completed (Guard: Requires Purchase Invoice upload)
+6. Export Processing (Guard: Requires EAA Certificate upload for Japan sourcing)
+7. Shipped (Guard: Requires Bill of Lading metadata)
+8. In Transit
+9. Arrived
+10. Customs Clearance
+11. Duties/Charges
+12. Registration/Compliance
+13. Ready for Collection
+14. Delivered
+
+6. Communication & WhatsApp Integration Layer
+
+This architecture works with WhatsApp to leverage its dominance in the local cash economy without ceding control of the data audit trail.
+
+Event-Driven Notification Architecture
+
+The system utilizes an asynchronous event trigger for all status changes. When import_cases.status updates (e.g., to 'Arrived'), an event triggers the following:
+
+* Notification Generator: Creates an in-app alert.
+* Deep-Link Integration: Generates a pre-filled WhatsApp message link for the customer (e.g., "Hello, I need an update on my Hilux, Case EC-1042").
+* Audit Logging: Records the notification event in the immutable system log.
+
+7. Data Model & Multi-Tenant Schema
+
+The relational PostgreSQL schema utilizes a normalized structure to support complex valuation and multi-tenancy.
+
+Core Entities
+
+* companies: Tenant master records.
+* vehicles: Includes vin_chassis, engine_number, variant, source_country, and purchase_price.
+* quotation_items: Supports the CIF (Cost, Insurance, Freight) valuation methodology, including freight invoices, insurance statements, and port charges.
+* import_cases: The central junction linking vehicle, customer, and state.
+* documents: Encrypted metadata for the vault.
+
+8. Security, RBAC & Document Vault
+
+Role-Based Access Control (RBAC)
+
+Role	Permissions
+Customer	View-only access to own cases, financial status, and documents.
+Staff	CRUD permissions for cases, payments, and document uploads. No tenant config.
+Administrator	Full system access, staff management, branding, and stage configuration.
+
+Document Vault & S3 Logic
+
+Sensitive documents (Bill of Lading, EAA Certificates) are stored in encrypted S3/Object Storage.
+
+* Access Control: The file path is obfuscated and never exposed publicly.
+* Pre-signed URLs: Access is granted via temporary, expiring URLs generated only upon server-side authorization of the user’s company_id and role.
+
+9. Operational Implementation & MVP Roadmap
+
+Phase 1: Core Operations
+
+* Authentication & Multi-tenant configuration.
+* Basic Import Case management and 14-stage state machine.
+* Customer dashboard (PWA Shell).
+
+Phase 2: Finance & Documents
+
+* CIF-based Quotation engine and manual payment recording.
+* Secure Document Vault with S3 integration and Pre-signed URLs.
+
+Phase 3: Advanced PWA & Tracking
+
+* Full offline shell caching and background sync.
+* Event-driven notification system.
+* Manual coordinate tracking updates.
+
+Phase 4: Future Integrations
+
+* Fiscalisation Integration: Asynchronous communication with ZIMRA’s ASYCUDA system or local fiscal devices.
+* WhatsApp Business API for automated outbound messaging.
+* Payment gateway hooks for EcoCash/InnBucks.
+
+Success Criteria
+
+The architecture is successful if it facilitates answers to seven critical questions within 5 seconds of app launch:
+
+1. What vehicle am I importing?
+2. How much have I paid?
+3. How much do I still owe?
+4. Where is my vehicle currently located?
+5. What is the next milestone?
+6. Are my documents available for download?
+7. How do I contact my agent?
+
+By standardizing these data points, the system transforms the high-risk, opaque process of vehicle importation into a professional, scalable service.

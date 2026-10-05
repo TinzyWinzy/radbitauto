@@ -1,0 +1,125 @@
+Product Requirement Document: Multi-Tenant Vehicle Import Customer Portal (MVP)
+
+1. Executive Summary & Core Product Vision
+
+The strategic objective of this portal is to modernize the Zimbabwean vehicle importation lifecycle by transitioning stakeholders from fragmented, high-friction communication—primarily unmanaged WhatsApp threads and scattered emails—to a centralized, operational dashboard. In a high-value, cash-dominated economy where vehicle imports accounted for approximately $59.4 million in April 2025 (7.6% of the national import bill), providing a single source of truth is the primary mechanism for building trust.
+
+The portal solves critical "information gaps" identified in the sourcing and clearing process: status uncertainty, document fragmentation, and opaque financial obligations. This is not a marketing site; it is an operational "Professional Operating Platform."
+
+Strategic Targets:
+
+* Tenants: Initial deployment focuses on white-labeled solutions for Eddy Customs and Muchy Motors, with the capacity to scale to any sourcing business or clearing agent.
+* Vision: To provide a branded, professional interface that handles the complexities of the Zimbabwean regulatory landscape while maintaining the speed of local communication habits.
+
+This vision is underpinned by a robust technical architecture designed to support specific user personas and mandatory compliance gates.
+
+2. User Personas & Role-Based Access Control (RBAC)
+
+A granular RBAC model is critical for maintaining data integrity and tenant isolation. In a multi-tenant environment, the system must ensure that data payloads and document access are strictly restricted to the relevant company_id to prevent cross-tenant data leakage.
+
+Role	Primary Responsibilities	Key Permissions
+Customer	Monitor import progress; manage payments and documentation.	View active imports/quotations; download documents; submit enquiries; WhatsApp deep-link access.
+Staff	Manage the operational lifecycle of vehicle imports for specific customers.	Create/edit customers/cases; upload documents; manual tracking updates; record cash/bank payments.
+Administrator	Oversee business operations, branding, and system configuration.	All Staff permissions plus: Manage staff accounts; configure custom workflow stages; define company-wide settings.
+
+Customer Home Screen Requirements
+
+The primary interface is a mobile-first "My Imports" dashboard. Each vehicle import is represented as a card-based interface showing the vehicle make/model (e.g., Toyota Hilux 2019), status (e.g., 🚢 In Transit), and a progress indicator. The "View Import" primary action serves as the gateway to detailed tracking and financial data.
+
+This model ensures that users only interact with the specific regulatory and financial data pertinent to their role.
+
+3. Regulatory & Compliance Context (Zimbabwe)
+
+The Zimbabwean vehicle import landscape is defined by high volatility in statutory requirements. Automated compliance checks within the portal are strategically vital to prevent the importation of prohibited assets.
+
+Vehicle Age Restrictions
+
+Based on SI 54 of 2024 and SI 59 of 2026, the system must enforce the following logic:
+
+* Prohibited (General): Passenger cars, passenger vans (carrying 10+ people), and double-cab trucks older than 10 years from the date of manufacture.
+* Exempt (Heavy Commercial): Only heavy commercial vehicles (haulage trucks, tractors, specialized mining/construction equipment) remain exempt from the 10-year age cap.
+
+Special Exemptions (SI 172 of 2024)
+
+The system must support specific exemption flags for:
+
+* Deceased Estates: Inherited vehicles.
+* Returning Residents (Immigrant’s Rebate): Requires proof of 2+ years abroad (or 6 months for government assignment) and 6+ months of vehicle ownership.
+* Antique/Classic Vehicles: Vehicles 25+ years old (requires an Import Licence from the Ministry of Industry and Commerce).
+
+Mandatory Inspection
+
+The portal serves as a "hard gate" for the EAA (East Africa Automobile Services) PVoC program. No import case can progress to the "Customs Clearance" stage without a verified EAA Certificate of Conformity.
+
+These regulatory constraints directly inform the functional logic of the duty calculation and workflow engines.
+
+4. Functional Requirements: The Import Workflow & Engines
+
+The 14-stage workflow is the backbone of the platform, transforming a complex logistics process into a transparent timeline for the end customer.
+
+The 14-Stage Import Workflow
+
+The default sequence is: (1) Enquiry, (2) Quotation, (3) Payment Confirmed, (4) Vehicle Sourced, (5) Purchase Completed, (6) Export Processing, (7) Shipped, (8) In Transit, (9) Arrived, (10) Customs Clearance, (11) Duties/Charges, (12) Registration/Compliance, (13) Ready for Collection, (14) Delivered.
+
+* Architectural Note: Administrators must have the ability to enable/disable, rename, and reorder these stages per tenant (e.g., a sourcing business vs. a clearing agent).
+
+CIF Duty Calculation Engine
+
+The engine must calculate duties based on the Cost, Insurance, and Freight (CIF) value. To prevent under-valuation penalties, the engine must use the Japanese Yellow Book Value as the base if it exceeds the purchase invoice price.
+
+* Customs Duty: 25% to 40% (engine size dependent).
+* Import Duty: Standard surcharge of ~20%.
+* VAT: 15% (applied to CIF + Customs Duty + Import Duty).
+* Surtax: 25% for vehicles >5 years old.
+* Carbon Tax: Capacity-based flat fee.
+
+Document Vault & WhatsApp Optimization
+
+The "Document Vault" manages mandatory categories (Registration Certificate, Export Certificate, Bill of Lading, EAA Certificate). To harmonize with local behavior, the portal utilizes WhatsApp Bundle Optimization. High-friction screens (Quotation and Payment) must include deep-linked "WhatsApp Us" buttons that pre-fill the company number with the reference (e.g., "Update on EC-1042"), ensuring the system works with, not against, current communication habits.
+
+5. Technical Architecture & Database Design
+
+The platform follows a "Multi-Tenant Isolation" model. Every API request and database query must include a company_id filter at the schema level to ensure strict client-side and server-side authorization.
+
+Relational Schema (Core Entities)
+
+To support a production-ready environment, the relational data model includes:
+
+* companies & company_settings (Branding, stage ordering, currency).
+* users, customers, & staff (RBAC data).
+* import_cases & vehicles (Chassis/VIN, year, make).
+* import_stages & import_stage_updates.
+* quotations & quotation_items (Individual line items for CIF).
+* payments, documents, tracking_updates, notifications, & enquiries.
+
+PWA Requirements
+
+The PWA must be optimized for the Zimbabwean Android-dominated mobile market:
+
+* Manifest & Service Workers: For an installable, app-like experience with an offline shell.
+* Field Photography: The architecture must allow the PWA to access the camera to capture and upload photos of physical cash receipts or bank Proof of Payments (PoP) in the field, a critical requirement for the shadow cash economy.
+
+6. Implementation Roadmap & MVP Success Criteria
+
+Deployment is phased to transition tenants from manual tracking to integrated automation.
+
+Phased Development Table
+
+Phase	Focus	Key Deliverables
+Phase 1	Infrastructure	Multi-tenant isolation, core RBAC, and Basic Import Case/Vehicle profiles.
+Phase 2	Financials & Docs	CIF Engine (Yellow Book Logic), Document Vault, and WhatsApp Deep Links.
+Phase 3	Experience	Tracking updates, PWA offline shell, and field photo capture for receipts.
+Phase 4	Integration	Future APIs for payment gateways and automated shipping tracking.
+
+MVP Success Criteria
+
+The MVP is successful if a customer can answer these questions within 5 seconds of opening the app:
+
+1. How much do I owe? (Outstanding balance via quotation engine).
+2. Where is my vehicle? (Current tracking location).
+3. What stage is it at? (Visual workflow timeline).
+4. How do I contact the company? (Contextual WhatsApp deep-link).
+
+Market Opportunity
+
+Data from ZimStat and IH Securities indicates passenger vehicle imports grew from $2.5M/month in 2023 to $6M/month by March 2026. With used imports exceeding 95% of total acquisitions, this portal functions as the essential professional operating platform for a high-growth sector.

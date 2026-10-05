@@ -1,0 +1,155 @@
+/* Public automotive identity; workspace and authentication styles stay separate. */
+.automotive-landing {
+  --market-ink: #173d31;
+  --market-muted: #56675d;
+  --market-paper: #faf8f1;
+  --market-line: #d9ded0;
+  max-width: 1344px;
+  padding-inline: 48px;
+}
+.automotive-landing a:focus-visible,
+.automotive-landing button:focus-visible { outline: 3px solid #b57b25; outline-offset: 5px; }
+.automotive-landing .marketing-header { min-height: 104px; border-color: var(--market-line); }
+.automotive-landing .product-wordmark { gap: 12px; font-size: 16px; line-height: 1.25; }
+.automotive-landing .public-signin { border-radius: 6px; padding: 10px 22px; border-color: #b9c5b9; }
+.automotive-landing .interface-eyebrow { color: #376652; letter-spacing: .14em; font-size: 10px; line-height: 1.7; }
+.automotive-landing .marketing-hero { grid-template-columns: 1fr 1fr; gap: 52px; padding: 58px 0 54px; }
+.automotive-landing .marketing-hero h1 { font-size: clamp(40px,4.65vw,66px); line-height: 1.04; letter-spacing: -.055em; margin: 20px 0 24px; }
+.automotive-landing .marketing-hero h1 span { display: block; color: #547260; }
+.automotive-landing .marketing-lead { font-size: 16px; line-height: 1.8; max-width: 44ch; }
+.automotive-landing .btn-primary,
+.automotive-landing .btn-ghost { border-radius: 6px; min-height: 48px; font-size: 13px; padding: 13px 20px; transition: background-color .2s, border-color .2s; }
+.automotive-landing .btn-primary { background: var(--market-ink); color: #fffdf3; }
+.automotive-landing .btn-primary:hover { background: #285a46; }
+.automotive-landing .btn-ghost { border-color: #bdc7b9; }
+.automotive-landing .btn-ghost:hover { background: #e5ebdf; }
+.automotive-hero-art { background: #dce5d7; border-radius: 4px 4px 40px 4px; overflow: hidden; position: relative; }
+.art-topline { position: absolute; inset: 24px 26px auto; display: flex; justify-content: space-between; gap: 16px; font-size: 10px; letter-spacing: .08em; color: #fffdf5; text-shadow: 0 1px 5px #17241e; z-index: 1; }
+.automotive-hero-art::before { content: ''; position: absolute; inset: 0 0 auto; height: 90px; background: linear-gradient(#17241e90,transparent); pointer-events: none; }
+.automotive-hero-art img { width: 100%; height: auto; aspect-ratio: 4/3; object-fit: cover; object-position: center; display: block; }
+.automotive-hero-art figcaption { padding: 20px 28px; background: var(--market-ink); color: #e8ecd7; display: flex; align-items: center; justify-content: space-between; font-size: 13px; line-height: 1.65; }
+.automotive-hero-art figcaption strong { font-weight: 500; }
+.automotive-hero-art figcaption a { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid #819580; border-radius: 50%; font-size: 25px; }
+.journey-strip { display: grid; grid-template-columns: .6fr 3fr; gap: 30px; border-block: 1px solid var(--market-line); padding: 28px 0; align-items: center; }
+.journey-strip ol { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 28px; }
+.journey-strip li { display: flex; gap: 14px; }
+.journey-strip li>span { font-size: 11px; padding-top: 3px; color: #667962; }
+.journey-strip h2 { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.journey-strip li p { font-size: 12px; color: var(--market-muted); line-height: 1.65; }
+.automotive-landing .marketing-section { padding-block: 72px; border-color: var(--market-line); }
+.automotive-landing #cars { border-top: 0; }
+.automotive-landing .marketing-section h2 { font-size: clamp(30px,3.2vw,44px); line-height: 1.13; letter-spacing: -.04em; margin-top: 12px; margin-bottom: 20px; text-wrap: balance; }
+.automotive-landing .catalogue-heading>p { font-size: 13px; }
+.automotive-landing .catalogue-filters { padding: 20px; background: var(--market-paper); border: 1px solid var(--market-line); border-radius: 8px; margin-top: 28px; }
+.automotive-landing .catalogue-filters label { font-size: 12px; color: #3d5847; }
+.automotive-landing .catalogue-filters .field { background: #fffdf8; border: 1px solid #ced6c7; border-radius: 5px; color: #17241e; }
+.automotive-landing .catalogue-car { border-color: var(--market-line); border-radius: 8px; }
+.automotive-landing .catalogue-car img { aspect-ratio: 3/2; object-position: center; }
+.automotive-landing .catalogue-photo-empty { aspect-ratio: 3/2; background: #e5e9df; }
+.automotive-landing .catalogue-car h3 { font-size: 25px; }
+.automotive-landing .catalogue-price { font-size: 21px; font-weight: 600; color: var(--market-ink); }
+.automotive-landing .catalogue-empty { background: #e8ecdf; border: 1px solid #d6ddcb; border-radius: 8px; padding: 36px; }
+.automotive-landing .catalogue-empty p { color: #52644f; font-size: 14px; max-width: 66ch; }
+.automotive-landing .sourcing-story { gap: 80px; }
+.automotive-landing .marketing-workflow p { font-size: 14px; line-height: 1.85; }
+.automotive-landing .dealer-pitch { margin: 0 -24px; padding: 54px 48px 60px; background: var(--market-ink); color: #fffbed; border: 0; border-radius: 8px; gap: 52px; position: relative; }
+.dealer-section-number { grid-column: 1/-1; font-size: 10px; letter-spacing: .16em; color: #ccd7b9; margin-bottom: -24px; }
+.automotive-landing .dealer-pitch .interface-eyebrow { color: #c6d7a5; }
+.automotive-landing .dealer-pitch h2 { color: #fffbed; }
+.automotive-landing .dealer-pitch .marketing-lead,
+.automotive-landing .dealer-pitch .interface-note,
+.automotive-landing .dealer-capabilities dd { color: #d1dcce; }
+.automotive-landing .dealer-pitch .btn-primary { background: #e2ecce; color: #193d2f; }
+.automotive-landing .dealer-pitch .btn-primary:hover { background: #f0f5e3; }
+.automotive-landing .dealer-pitch .btn-ghost { background: transparent; color: #f9f5e8; border-color: #79927f; }
+.automotive-landing .dealer-pitch .btn-ghost:hover { background: #285241; }
+.automotive-landing .dealer-capabilities>div { border-color: #456351; padding: 20px 0; }
+.automotive-landing .dealer-capabilities>div:first-child { padding-top: 0; }
+.automotive-landing .dealer-capabilities dt { font-size: 17px; }
+.automotive-landing .dealer-capabilities dd { font-size: 13px; line-height: 1.75; }
+.automotive-landing .pricing-story { display: grid; grid-template-columns: .95fr 1.4fr; gap: 32px; border: 0; padding-top: 88px; }
+.pricing-intro>p:not(.interface-eyebrow) { max-width: 36ch; font-size: 14px; color: var(--market-muted); line-height: 1.85; }
+.pricing-intro .pricing-trial-note { margin-top: 28px; padding-left: 16px; border-left: 2px solid #66845c; }
+.pricing-trial-note strong { font-weight: 500; color: var(--market-ink); }
+.pricing-plans { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.marketing-plan { border: 1px solid #cfd7c6; border-radius: 8px; background: var(--market-paper); padding: 26px 22px; display: flex; flex-direction: column; min-width: 0; }
+.marketing-plan.dealer-plan { background: #e5ecda; border-color: #9eb48d; }
+.plan-caption { font-size: 10px; color: #526d44; letter-spacing: .08em; min-height: 18px; }
+.marketing-plan h3 { font: 600 27px/1.3 Georgia,serif; margin-top: 12px; }
+.plan-price { margin: 14px 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 7px; }
+.plan-price strong { font-size: 43px; letter-spacing: -.045em; font-weight: 500; }
+.plan-price span { font-size: 10px; color: #586a50; }
+.plan-description { font-size: 12px; line-height: 1.7; color: #52644f; min-height: 42px; }
+.marketing-plan ul { border-top: 1px solid #cfd7c6; padding-top: 18px; margin: 18px 0 24px; }
+.marketing-plan li { font-size: 12px; margin-bottom: 12px; line-height: 1.5; }
+.marketing-plan li::before { content: '✓'; color: #466543; margin-right: 8px; }
+.marketing-plan .btn-primary,.marketing-plan .btn-ghost { margin-top: auto; width: 100%; padding-inline: 10px; font-size: 11px; }
+.pricing-fine-print { grid-column: 1/-1; font-size: 11px; line-height: 1.8; color: var(--market-muted); max-width: 100ch; }
+.automotive-landing .connected-story { padding-block: 48px 56px; }
+.automotive-landing .marketing-footer { padding-block: 28px; font-size: 12px; line-height: 1.9; }
+.automotive-landing .marketing-footer strong { font-weight: 600; color: var(--market-ink); }
+@media(min-width:1500px) { .automotive-landing .marketing-hero { gap: 76px; } }
+@media(max-width:1050px) {
+ .automotive-landing { padding-inline: 32px; }
+ .automotive-landing .marketing-hero { gap: 30px; }
+ .automotive-landing .marketing-hero h1 { font-size: 48px; }
+ .automotive-landing .marketing-actions { gap: 10px; }
+ .automotive-landing .marketing-actions a { padding-inline: 15px; }
+ .journey-strip { grid-template-columns: 1fr; gap: 20px; }
+ .journey-strip>.interface-eyebrow br { display: none; }
+ .automotive-landing .pricing-story { grid-template-columns: 1fr; }
+ .pricing-intro>p:not(.interface-eyebrow) { max-width: 65ch; }
+ .automotive-landing .dealer-pitch { padding-inline: 32px; gap: 30px; margin-inline: 0; }
+ .dealer-section-number { margin-bottom: -8px; }
+}
+@media(max-width:767px) {
+ .automotive-landing { padding-inline: 22px; }
+ .automotive-landing .marketing-header { gap: 14px; padding-block: 20px; min-height: 100px; flex-wrap: wrap; }
+ .automotive-landing .marketing-header nav { width: 100%; gap: 16px; }
+ .automotive-landing .marketing-header nav a { font-size: 12px; }
+ .automotive-landing .marketing-header .public-signin { margin-left: auto; padding: 6px 16px; }
+ .automotive-landing .marketing-hero { grid-template-columns: 1fr; padding: 40px 0 30px; gap: 26px; }
+ .automotive-landing .marketing-hero h1 { font-size: clamp(39px,9.9vw,60px); max-width: 13ch; }
+ .automotive-landing .marketing-lead { max-width: 50ch; font-size: 15px; }
+ .automotive-landing .marketing-actions { flex-direction: row; margin-top: 24px; }
+ .automotive-landing .marketing-actions a { width: auto; flex: 1 1 auto; }
+ .automotive-hero-art { border-radius: 4px 4px 24px 4px; }
+ .automotive-hero-art img { aspect-ratio: 4/3; object-fit: cover; object-position: center; }
+ .art-topline { inset: 18px 20px auto; font-size: 9px; }
+ .automotive-hero-art figcaption { padding: 16px 20px; font-size: 12px; }
+ .journey-strip { padding-block: 24px; }
+ .journey-strip ol { grid-template-columns: 1fr; gap: 20px; }
+ .journey-strip li { gap: 18px; }
+ .journey-strip h2 { font-size: 14px; }
+ .journey-strip li p { font-size: 12px; }
+ .automotive-landing .marketing-section { padding-block: 44px; }
+ .automotive-landing .marketing-section h2 { font-size: 33px; }
+ .automotive-landing .catalogue-heading>p { margin-bottom: 0; }
+ .automotive-landing .catalogue-filters { padding: 16px; gap: 16px; }
+ .automotive-landing .catalogue-empty { padding: 24px; }
+ .automotive-landing .sourcing-story { grid-template-columns: 1fr; gap: 6px; }
+ .automotive-landing .dealer-pitch { grid-template-columns: 1fr; padding: 32px 24px; gap: 24px; }
+ .dealer-section-number { margin-bottom: -8px; }
+ .automotive-landing .dealer-pitch .marketing-actions { flex-direction: column; }
+ .automotive-landing .dealer-pitch .marketing-actions a { width: 100%; }
+ .automotive-landing .pricing-story { gap: 28px; padding-top: 48px; }
+ .pricing-plans { gap: 12px; }
+ .marketing-plan { padding: 22px 16px; }
+ .automotive-landing .connected-story { gap: 8px; }
+ .automotive-landing .marketing-footer>div { gap: 20px; }
+}
+@media(max-width:480px) {
+ .pricing-plans { grid-template-columns: 1fr; }
+ .plan-description { min-height: auto; }
+ .marketing-plan { padding: 24px; }
+ .marketing-plan .btn-primary,.marketing-plan .btn-ghost { font-size: 13px; }
+}
+@media(max-width:359px) {
+ .automotive-landing { padding-inline: 16px; }
+ .automotive-landing .marketing-header nav { gap: 12px; }
+ .automotive-landing .marketing-header .pricing-nav { display: none; }
+ .automotive-landing .marketing-hero h1 { font-size: 38px; }
+ .automotive-landing .marketing-actions { flex-direction: column; }
+ .automotive-landing .marketing-actions a { width: 100%; }
+ .art-topline span:last-child { display: none; }
+}

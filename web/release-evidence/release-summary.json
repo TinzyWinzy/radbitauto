@@ -1,0 +1,16 @@
+{
+  "unitTestsPassed": 22,
+  "syntheticRecovery": "passed",
+  "portal": "https://studio-285787437-bc95b.web.app",
+  "support": "brandontinoz@gmail.com",
+  "finalFinanceAndInvitationTestsPassedWithoutRetries": 3,
+  "productionDataRestoreRehearsal": "not performed; automatic approval review requires explicit approval",
+  "rulesTestsPassed": 23,
+  "fullBrowserRun": {
+    "passedOnRetry": 1,
+    "firstAttemptPassed": 23
+  },
+  "project": "studio-285787437-bc95b",
+  "finalFunctionTestsPassed": 37,
+  "recordedAt": "2026-10-04T12:19:27.8281808Z"
+}

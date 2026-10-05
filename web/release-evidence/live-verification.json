@@ -1,0 +1,12 @@
+{
+  "checkedAt": "2026-10-04T20:03:24.760Z",
+  "url": "https://studio-285787437-bc95b.web.app",
+  "evidence": [
+    "desktop: landing, login, support and authenticated case-link redirect passed; no JavaScript errors or horizontal overflow",
+    "tablet: landing, login, support and authenticated case-link redirect passed; no JavaScript errors or horizontal overflow",
+    "mobile: landing, login, support and authenticated case-link redirect passed; no JavaScript errors or horizontal overflow",
+    "small-phone: landing, login, support and authenticated case-link redirect passed; no JavaScript errors or horizontal overflow",
+    "Public vehicle catalogue loads and exposes only explicit listing fields",
+    "PWA manifest, service-worker cache headers and 35 production callable authentication fences passed"
+  ]
+}

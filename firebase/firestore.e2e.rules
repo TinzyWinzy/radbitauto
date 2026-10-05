@@ -1,0 +1,15 @@
+// E2E-OPEN-RULES - NEVER DEPLOY TO PRODUCTION.
+// Emulator-only rules for Playwright e2e: the Firestore emulator does not
+// evaluate `resource` in field-filtered list queries the way production does,
+// so tenant list reads would always fail under emulation. Tenant isolation
+// itself is covered by test/emulator/rules.test.ts (28/28) against the real
+// rules file. The deploy guard (functions/e2e/guard-rules.mjs, wired into
+// firebase.json predeploy) aborts any deploy while these rules are active.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

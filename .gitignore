@@ -1,0 +1,12 @@
+**/node_modules/
+**/dist/
+**/.hosting/
+**/.firebase/
+**/.release/
+**/test-results/
+**/playwright-report/
+**/*-debug.log
+**/.env.local
+**/.env.*.local
+
+**/functions/lib/

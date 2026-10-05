@@ -1,0 +1,37 @@
+{
+  "checkedAt": "2026-10-05T08:42:11.543Z",
+  "evidence": [
+    {
+      "viewport": 320,
+      "source": "https://studio-285787437-bc95b.web.app/images/vehicle-journey-600.webp",
+      "width": 276,
+      "ratio": 1.3333333333333333,
+      "overflow": false,
+      "browsingAndSignup": "passed"
+    },
+    {
+      "viewport": 390,
+      "source": "https://studio-285787437-bc95b.web.app/images/vehicle-journey-600.webp",
+      "width": 346,
+      "ratio": 1.3307984790874525,
+      "overflow": false,
+      "browsingAndSignup": "passed"
+    },
+    {
+      "viewport": 768,
+      "source": "https://studio-285787437-bc95b.web.app/images/vehicle-journey-600.webp",
+      "width": 353,
+      "ratio": 1.33201581027668,
+      "overflow": false,
+      "browsingAndSignup": "passed"
+    },
+    {
+      "viewport": 1440,
+      "source": "https://studio-285787437-bc95b.web.app/images/vehicle-journey-600.webp",
+      "width": 600,
+      "ratio": 1.3316953316953317,
+      "overflow": false,
+      "browsingAndSignup": "passed"
+    }
+  ]
+}

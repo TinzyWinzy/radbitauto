@@ -1,0 +1,94 @@
+rules_version = '2';
+service firebase.storage {
+  function isSignedIn() { return request.auth != null; }
+  function company() { return request.auth.token.get('company_id', null); }
+  function role() { return request.auth.token.get('app_role', null); }
+  function isActiveUser() {
+    return isSignedIn()
+      && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.isActive == true;
+  }
+  function isActiveCompany(cid) {
+    return cid != null
+      && firestore.get(/databases/(default)/documents/companies/$(cid)).data.isActive == true;
+  }
+  function subscriptionWritable() {
+    let s = firestore.get(/databases/(default)/documents/companies/$(company())).data.get('subscription', {});
+    return s.get('version', 0) != 1 ? s.get('status', 'pilot') != 'suspended'
+      : s.get('planId', '') in ['solo','dealer'] && s.get('status', '') in ['trial','active'] && s.get('accessUntil', timestamp.date(2000,1,1)) > request.time;
+  }
+  function isStaff() {
+    return isActiveUser() && company() != null && role() in ['staff', 'admin']
+      && isActiveCompany(company())
+      && firestore.get(/databases/(default)/documents/staff/$(request.auth.uid)).data.isActive == true
+      && firestore.get(/databases/(default)/documents/staff/$(request.auth.uid)).data.companyId == company()
+      && firestore.get(/databases/(default)/documents/staff/$(request.auth.uid)).data.role == role()
+      && (!firestore.get(/databases/(default)/documents/staff/$(request.auth.uid)).data.get('isPlatformView',false)
+        || (request.auth.token.get('platform_admin',false) == true
+          && firestore.get(/databases/(default)/documents/platform_admins/$(request.auth.uid)).data.isActive == true));
+  }
+  function isActiveCustomer(customerDocId) {
+    return isActiveUser() && request.auth.token.get('customer_id', null) == customerDocId
+      && company() != null && isActiveCompany(company())
+      && firestore.get(/databases/(default)/documents/customers/$(customerDocId)).data.isActive == true
+      && firestore.get(/databases/(default)/documents/customers/$(customerDocId)).data.companyId == company()
+      && firestore.get(/databases/(default)/documents/customers/$(customerDocId)).data.userId == request.auth.uid;
+  }
+  function sameCompany(cid) { return cid != null && cid == company(); }
+  function caseMatches(caseDocId, companyId) {
+    return isActiveCompany(companyId)
+      && firestore.get(/databases/(default)/documents/import_cases/$(caseDocId)).data.companyId == companyId;
+  }
+  function ownsCase(caseDocId) {
+    let c = firestore.get(/databases/(default)/documents/import_cases/$(caseDocId)).data;
+    return c.companyId == company() && isActiveCustomer(c.customerId);
+  }
+  function sizeOk(limitBytes) { return request.resource.size < limitBytes; }
+  function isDocType(t) {
+    return t in ['export_certificate', 'bill_of_lading', 'road_manifest',
+      'condition_report', 'eaa_certificate', 'purchase_invoice',
+      'proof_of_payment', 'import_licence'];
+  }
+  function isDocContent() {
+    return request.resource.contentType in ['application/pdf',
+      'image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+  }
+  function isProofMethod(m) { return m in ['EcoCash', 'InnBucks', 'Bank', 'Cash']; }
+  function isProofContent() {
+    return request.resource.contentType in ['image/jpeg',
+      'image/png', 'image/webp', 'image/heic', 'image/heif'];
+  }
+
+  match /b/{bucket}/o {
+    match /stock-photos/{companyId}/{stockId}/{photoId} {
+      allow read: if isStaff() && sameCompany(companyId);
+      allow create: if subscriptionWritable() && isStaff() && sameCompany(companyId)
+        && firestore.get(/databases/(default)/documents/dealer_stock/$(stockId)).data.companyId == companyId
+        && photoId.matches('[A-Za-z0-9_-]{10,100}')
+        && request.resource.contentType in ['image/jpeg','image/png','image/webp']
+        && sizeOk(5 * 1024 * 1024);
+      allow update, delete: if false;
+    }
+    match /documents/{companyId}/{caseDocId}/{docType}/{file=**} {
+      allow read: if sameCompany(companyId) && caseMatches(caseDocId, companyId)
+                    && (isStaff() || ownsCase(caseDocId));
+      allow update, delete: if false;
+    }
+
+    match /documents/{companyId}/{caseDocId}/{docType}/{documentId}/{fileName} {
+      allow create: if subscriptionWritable() && isStaff() && sameCompany(companyId) && caseMatches(caseDocId, companyId)
+                    && isDocType(docType) && documentId.matches('[A-Za-z0-9_-]{10,100}')
+                    && isDocContent() && sizeOk(10 * 1024 * 1024);
+    }
+
+    match /payment-proofs/{companyId}/{caseDocId}/{method}/{file=**} {
+      allow read: if sameCompany(companyId) && caseMatches(caseDocId, companyId)
+                    && (isStaff() || ownsCase(caseDocId));
+      allow update, delete: if false;
+    }
+
+    match /payment-proofs/{companyId}/{caseDocId}/{method}/{proofKey} {
+      allow create: if subscriptionWritable() && isStaff() && sameCompany(companyId) && caseMatches(caseDocId, companyId)
+                    && isProofMethod(method) && isProofContent() && sizeOk(5 * 1024 * 1024);
+    }
+  }
+}

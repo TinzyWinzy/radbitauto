@@ -1,0 +1,27 @@
+import { test, expect } from '@playwright/test';
+test('buyers filter, save, compare and enquire about the selected vehicle',async({page})=>{
+ const stock=[{id:'aqua',title:'2020 Toyota Aqua',location:'Harare',askingPriceCents:800000,photos:['/images/vehicle-journey-600.webp'],dealerName:'Test Motors',slug:'test-motors',specs:{make:'Toyota',model:'Aqua',year:2020,mileageKm:45000,fuel:'Hybrid',transmission:'Automatic',bodyType:'Hatchback'}},{id:'pickup',title:'2018 Isuzu Pickup',location:'Bulawayo',askingPriceCents:1400000,photos:[],dealerName:'Test Motors',slug:'test-motors',specs:{year:2018,fuel:'Diesel',transmission:'Manual',bodyType:'Pickup'}}];
+ let enquiry:any;
+ await page.route('**/publicVehicleCatalogue',r=>r.fulfill({json:{result:{stock,limited:false}}}));
+ await page.route('**/dealerShowroom',r=>r.fulfill({json:{result:{name:'Test Motors',whatsapp:'+263771234567',acceptsEnquiries:true,stock:stock.map(s=>({...s,description:'Available for viewing. Confirm condition with dealer.'}))}}}));
+ await page.route('**/enquireDealerShowroom',r=>{enquiry=r.request().postDataJSON().data;return r.fulfill({json:{result:{received:true}}});});
+ await page.setViewportSize({width:390,height:900});await page.goto('/');
+ await page.getByRole('heading',{name:'2020 Toyota Aqua',exact:true}).waitFor();
+ await page.getByText('More filters & sort',{exact:true}).click();
+ await page.getByLabel('Fuel',{exact:true}).selectOption('Hybrid');
+ await expect(page.getByRole('heading',{name:'2018 Isuzu Pickup',exact:true})).toHaveCount(0);
+ await page.getByRole('button',{name:'Shortlist 2020 Toyota Aqua'}).click();
+ await expect(page.getByRole('region',{name:'Saved vehicle comparison'})).toContainText('45,000 km');
+ await page.reload();await expect(page.getByRole('region',{name:'Saved vehicle comparison'})).toContainText('2020 Toyota Aqua');
+ await page.getByRole('link',{name:'View vehicle & enquire about 2020 Toyota Aqua'}).click();
+ await expect(page).toHaveURL(/\/showroom\/test-motors\/vehicle\/aqua$/);
+ await expect(page.getByText('Stock reference: aqua')).toBeVisible();
+ await page.getByLabel('Your name',{exact:true}).fill('Buyer');await page.getByLabel('WhatsApp / phone',{exact:true}).fill('+263771111111');
+ await page.getByLabel('Budget in USD').fill('8000');await page.getByRole('button',{name:'Send enquiry',exact:true}).click();
+ await expect(page.getByRole('status').filter({hasText:'Your enquiry has reached'})).toBeVisible();
+ expect(enquiry.stockId).toBe('aqua');expect(enquiry.interest).toBe('stock');expect(enquiry.budgetCents).toBe(800000);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.screenshot({path:'release-evidence/vehicle-detail-mobile.png',fullPage:true});
+ await page.setViewportSize({width:1440,height:900});await page.screenshot({path:'release-evidence/vehicle-detail-desktop.png',fullPage:true});
+ await page.goto('/showroom/test-motors/vehicle/withdrawn');await expect(page.getByRole('heading',{name:'This vehicle is no longer listed.'})).toBeVisible();await expect(page.getByRole('button',{name:'Send enquiry'})).toHaveCount(0);
+});

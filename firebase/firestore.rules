@@ -1,0 +1,271 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() { return request.auth != null; }
+    function role() { return request.auth.token.get('app_role', null); }
+    function company() { return request.auth.token.get('company_id', null); }
+    function customerId() { return request.auth.token.get('customer_id', null); }
+    function isActiveUserDoc(uid) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(uid))
+        && get(/databases/$(database)/documents/users/$(uid)).data.isActive == true;
+    }
+    function isActiveCaller() { return isActiveUserDoc(request.auth.uid); }
+    function isActiveCompany(cid) {
+      return cid != null
+        && exists(/databases/$(database)/documents/companies/$(cid))
+        && get(/databases/$(database)/documents/companies/$(cid)).data.isActive == true;
+    }
+    function subscriptionWritable() {
+      let s = get(/databases/$(database)/documents/companies/$(company())).data.get('subscription', {});
+      return s.get('version', 0) != 1 ? s.get('status', 'pilot') != 'suspended'
+        : s.get('planId', '') in ['solo','dealer'] && s.get('status', '') in ['trial','active'] && s.get('accessUntil', timestamp.date(2000,1,1)) > request.time;
+    }
+    function isStaffDoc(uid, cid) {
+      return exists(/databases/$(database)/documents/staff/$(uid))
+        && get(/databases/$(database)/documents/staff/$(uid)).data.isActive == true
+        && get(/databases/$(database)/documents/staff/$(uid)).data.companyId == cid
+        && (!get(/databases/$(database)/documents/staff/$(uid)).data.get('isPlatformView', false)
+          || (request.auth.token.get('platform_admin', false) == true
+            && exists(/databases/$(database)/documents/platform_admins/$(uid))
+            && get(/databases/$(database)/documents/platform_admins/$(uid)).data.isActive == true));
+    }
+    function isPlatformAdmin() {
+      return isSignedIn()
+        && role() == 'platform_admin'
+        && request.auth.token.get('platform_admin', false) == true
+        && company() == null
+        && isActiveCaller()
+        && exists(/databases/$(database)/documents/platform_admins/$(request.auth.uid))
+        && get(/databases/$(database)/documents/platform_admins/$(request.auth.uid)).data.isActive == true;
+    }
+    function isStaff() {
+      return isActiveCaller()
+        && company() != null
+        && role() in ['staff', 'admin']
+        && isActiveCompany(company())
+        && isStaffDoc(request.auth.uid, company());
+    }
+    function isAdmin() {
+      return isStaff() && role() == 'admin';
+    }
+    function isActiveStaffCaller() {
+      return isActiveCaller()
+        && company() != null
+        && role() in ['staff', 'admin']
+        && isActiveCompany(company());
+    }
+    function isActiveCustomer(customerDocId) {
+      return isActiveCaller()
+        && customerId() != null
+        && customerId() == customerDocId
+        && company() != null
+        && isActiveCompany(company())
+        && exists(/databases/$(database)/documents/customers/$(customerDocId))
+        && get(/databases/$(database)/documents/customers/$(customerDocId)).data.isActive == true
+        && get(/databases/$(database)/documents/customers/$(customerDocId)).data.companyId == company()
+        && get(/databases/$(database)/documents/customers/$(customerDocId)).data.userId == request.auth.uid;
+    }
+    function sameCompany(cid) { return cid != null && cid == company(); }
+    function sameCaseCompany(caseDocId, cid) {
+      return isActiveCompany(cid)
+        && exists(/databases/$(database)/documents/import_cases/$(caseDocId))
+        && get(/databases/$(database)/documents/import_cases/$(caseDocId)).data.companyId == cid;
+    }
+    function ownsCase(caseDocId) {
+      let c = get(/databases/$(database)/documents/import_cases/$(caseDocId)).data;
+      return c.companyId == company() && isActiveCustomer(c.customerId);
+    }
+    function canReadCompany(cid) {
+      return (isStaff() && sameCompany(cid) && isActiveCompany(cid))
+        || (isActiveCustomer(customerId()) && sameCompany(cid) && isActiveCompany(cid))
+        || isPlatformAdmin();
+    }
+
+    match /platform_admins/{uid} {
+      allow read: if isPlatformAdmin() || (isActiveCaller() && request.auth.uid == uid);
+      allow write: if false;
+    }
+
+    match /companies/{cid} {
+      allow read: if canReadCompany(cid);
+      allow create: if false;
+      allow update: if subscriptionWritable() && isAdmin() && sameCompany(cid) && isActiveCompany(cid)
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                      'name', 'casePrefix', 'contactWhatsapp', 'primaryColor',
+                      'secondaryColor', 'defaultPort'
+                    ]);
+      allow delete: if false;
+    }
+
+    match /companies/{cid}/meta/{field} {
+      allow read: if isStaff() && sameCompany(cid) && isActiveCompany(cid);
+      allow write: if false;
+    }
+
+    match /companies/{cid}/stages/{key} {
+      allow read: if isActiveCaller() && sameCompany(cid) && isActiveCompany(cid);
+      allow write: if subscriptionWritable() && isAdmin() && sameCompany(cid) && isActiveCompany(cid);
+    }
+
+    match /company_settings/{cid} {
+      allow read: if isActiveCaller() && sameCompany(cid) && isActiveCompany(cid);
+      allow create, update: if subscriptionWritable() && isAdmin() && sameCompany(cid) && isActiveCompany(cid)
+                           && request.resource.data.currency == 'USD'
+                           && request.resource.data.keys().hasOnly(['currency', 'paymentMethods', 'updatedAt'])
+                           && request.resource.data.paymentMethods is list
+                           && request.resource.data.paymentMethods.hasOnly(['EcoCash', 'InnBucks', 'Bank', 'Cash']);
+      allow delete: if false;
+    }
+
+    match /users/{uid} {
+      allow read: if isPlatformAdmin()
+                || (isActiveCaller() && request.auth.uid == uid)
+                || (isStaff() && isStaffDoc(uid, company()));
+      allow create, delete: if false;
+      allow update: if isActiveCaller() && request.auth.uid == uid
+                  && request.resource.data.diff(resource.data).affectedKeys()
+                       .hasOnly(['phoneNumber', 'whatsappRef', 'fullName']);
+    }
+
+    match /staff/{uid} {
+      allow read: if isPlatformAdmin()
+                || (isStaff() && sameCompany(resource.data.companyId));
+      allow write: if false;
+    }
+
+    match /customers/{cid} {
+      allow read: if (isStaff() && sameCompany(resource.data.companyId))
+                || isActiveCustomer(cid);
+      allow write: if false;
+    }
+
+    match /vehicles/{vid} {
+      allow get: if (isStaff() && sameCompany(resource.data.companyId))
+                || (isActiveCustomer(customerId()) && sameCompany(resource.data.companyId)
+                    && 'customerIds' in resource.data
+                    && customerId() in resource.data.customerIds);
+      allow list: if isStaff() && sameCompany(resource.data.companyId);
+      allow write: if false;
+    }
+
+    match /import_cases/{caseDocId} {
+      allow read: if (isStaff() && sameCompany(resource.data.companyId))
+                || (isActiveCustomer(customerId())
+                    && sameCompany(resource.data.companyId)
+                    && resource.data.customerId == customerId());
+      allow write: if false;
+    }
+
+    match /import_cases/{caseDocId}/supplier/{sid} {
+      allow read: if isStaff() && sameCompany(get(/databases/$(database)/documents/import_cases/$(caseDocId)).data.companyId);
+      allow write: if false;
+    }
+
+    match /import_cases/{caseDocId}/stage_updates/{sid} {
+      allow read: if (isStaff() && sameCaseCompany(caseDocId, company()))
+                || ownsCase(caseDocId);
+      allow write: if false;
+    }
+
+    match /import_cases/{caseDocId}/tracking/{tid} {
+      allow read: if (isStaff() && sameCaseCompany(caseDocId, company()))
+                || ownsCase(caseDocId);
+      allow create: if subscriptionWritable() && isStaff()
+                    && request.resource.data.companyId == company()
+                    && sameCaseCompany(caseDocId, company());
+      allow update, delete: if subscriptionWritable() && isStaff()
+                    && request.resource.data.companyId == resource.data.companyId
+                    && sameCaseCompany(caseDocId, company());
+    }
+
+    match /import_cases/{caseDocId}/documents/{docId} {
+      allow read: if (isActiveStaffCaller() && sameCaseCompany(caseDocId, company()))
+                || ownsCase(caseDocId);
+      allow create: if subscriptionWritable() && isStaff()
+                    && request.resource.data.keys().hasOnly([
+                      'companyId', 'caseId', 'docType', 'objectPath', 'fileName',
+                      'uploadedBy', 'createdAt', 'verified', 'storageValid'
+                    ])
+                    && request.resource.data.companyId == company()
+                    && request.resource.data.caseId == caseDocId
+                    && sameCaseCompany(caseDocId, company())
+                    && request.resource.data.docType in [
+                      'export_certificate', 'bill_of_lading', 'road_manifest',
+                      'condition_report', 'eaa_certificate', 'purchase_invoice',
+                      'proof_of_payment', 'import_licence'
+                    ]
+                    && request.resource.data.objectPath ==
+                      'documents/' + company() + '/' + caseDocId + '/'
+                      + request.resource.data.docType + '/' + docId + '/'
+                      + request.resource.data.fileName
+                    && docId.matches('[A-Za-z0-9_-]{10,100}')
+                    && request.resource.data.fileName is string
+                    && request.resource.data.fileName.size() > 0
+                    && request.resource.data.fileName.size() <= 255
+                    && !request.resource.data.fileName.matches('.*[/\\\\].*')
+                    && request.resource.data.uploadedBy == request.auth.uid
+                    && request.resource.data.createdAt is timestamp
+                    && request.resource.data.verified == false
+                    && request.resource.data.storageValid == false;
+      allow update, delete: if false;
+    }
+
+    match /quotations/{qid} {
+      allow read: if (isStaff() && sameCompany(resource.data.companyId))
+                || ownsCase(resource.data.caseId);
+      allow write: if false;
+    }
+
+    match /payments/{pid} {
+      allow read: if (isStaff() && sameCompany(resource.data.companyId))
+                || ownsCase(resource.data.caseId);
+      allow write: if false;
+    }
+
+    match /stage_definitions/{key} {
+      allow read: if isStaff() || isPlatformAdmin();
+      allow write: if false;
+    }
+
+    match /config/tax_rates/sets/{setId} {
+      allow read: if (isStaff()
+                        && (resource.data.scope == 'all'
+                            || (resource.data.scope == 'company' && sameCompany(resource.data.companyId))))
+                    || isPlatformAdmin();
+      allow create: if (isPlatformAdmin() && request.resource.data.scope == 'all')
+                    || (subscriptionWritable() && isAdmin() && request.resource.data.scope == 'company'
+                        && sameCompany(request.resource.data.get('companyId', null)));
+      allow update: if resource.data.get('scope', null) == request.resource.data.scope
+                    && resource.data.get('companyId', null) == request.resource.data.get('companyId', null)
+                    && ((isPlatformAdmin() && resource.data.get('scope', null) == 'all')
+                        || (subscriptionWritable() && isAdmin() && resource.data.get('scope', null) == 'company'
+                            && sameCompany(resource.data.get('companyId', null))));
+      allow delete: if false;
+    }
+
+    match /users/{uid}/notifications/{nid} {
+      allow read, update: if isActiveCaller() && request.auth.uid == uid;
+      allow create, delete: if false;
+    }
+
+    match /enquiries/{eid} {
+      allow read: if (isStaff() && sameCompany(resource.data.companyId))
+                || (isActiveCustomer(customerId()) && sameCompany(resource.data.companyId)
+                    && resource.data.customerId == customerId());
+      allow create: if subscriptionWritable() && isActiveCustomer(customerId())
+                    && request.resource.data.customerId == customerId()
+                    && sameCompany(request.resource.data.companyId);
+      allow update: if subscriptionWritable() && isStaff() && sameCompany(resource.data.companyId)
+                    && isActiveCompany(resource.data.companyId)
+                    && request.resource.data.companyId == resource.data.companyId;
+      allow delete: if false;
+    }
+
+    match /audit_log/{aid} {
+      allow read: if (isStaff() && sameCompany(resource.data.companyId))
+                || isPlatformAdmin();
+      allow write: if false;
+    }
+  }
+}

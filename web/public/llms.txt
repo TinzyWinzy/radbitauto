@@ -1,0 +1,20 @@
+# Radbit Auto
+
+> Radbit Auto is a vehicle sales, import and customer portal workspace for Zimbabwean dealerships, sourcing and clearing agencies, and their buyers. Buyers can browse published dealer stock in USD, request imports on their behalf, and follow purchase, payment and progress records. Dealers manage stock, customer imports, sales, documents and buyer updates in one tenant workspace.
+
+## Product
+
+- Plans: Solo at $15/month (2 team members, 15 active vehicles) and Dealer at $29/month (5 team members, 50 active vehicles), in USD, with a 30-day Dealer trial. Customer accounts are free.
+- Channels: public showroom links per dealer, WhatsApp for conversation, the portal for records.
+- The portal does not move money, does not hold supplier credentials, and does not claim a BE FORWARD partnership.
+
+## Pages
+
+- [Homepage](https://studio-285787437-bc95b.web.app/): browse published dealer stock, import requests, pricing and dealer onboarding.
+- [Help and privacy](https://studio-285787437-bc95b.web.app/help): support contact, data handling, retention and service terms.
+- Dealer showrooms: https://studio-285787437-bc95b.web.app/showroom/{dealer-slug}
+
+## Contact
+
+- Support and account recovery: brandontinoz@gmail.com
+- Operator: Radbit Studios, https://radbitstudios.co.zw, Zimbabwe

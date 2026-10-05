@@ -1,0 +1,13 @@
+{
+  "name": "vehicle-import-portal-firebase",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:hosting": "npm --prefix ../web run build && npm --prefix ../web run prerender && node scripts/copy-hosting.mjs",
+    "test:e2e": "powershell -NoProfile -ExecutionPolicy Bypass -File ./e2e-run.ps1",
+    "test:emulator": "npm --prefix functions run build && firebase emulators:exec --project demo-vehicle-import --only auth,firestore,functions,storage \"npm --prefix functions run test:emulator\"",
+    "test:emulator:rules": "firebase emulators:exec --project demo-vehicle-import --only firestore \"node --test functions/test/emulator/rules.test.ts\"",
+    "test:emulator:functions": "npm --prefix functions run build && firebase emulators:exec --project demo-vehicle-import --only firestore \"node --test functions/test/emulator/functions.test.ts\"",
+    "test:emulator:storage": "firebase emulators:exec --project demo-vehicle-import --only firestore,storage \"node --test --test-concurrency=1 functions/test/emulator/rules.test.ts functions/test/emulator/storage-subscriptions.test.ts\""
+  }
+}

@@ -1,0 +1,16 @@
+export function parseCsv(text:string,delimiter=','):string[][]{
+ const rows:string[][]=[];let row:string[]=[],cell='',quoted=false;
+ const source=text.replace(/^\uFEFF/,'');
+ for(let i=0;i<source.length;i++){const c=source[i];if(quoted){if(c==='"'){if(source[i+1]==='"'){cell+='"';i++;}else quoted=false;}else cell+=c;}else if(c==='"'){if(cell.trim())throw new Error('Unexpected quote in CSV; export a standard CSV file');quoted=true;}else if(c===delimiter){row.push(cell);cell='';}else if(c==='\n'||c==='\r'){if(c==='\r'&&source[i+1]==='\n')i++;row.push(cell);rows.push(row);row=[];cell='';}else cell+=c;if(rows.length>5000||row.length>100||cell.length>10000)throw new Error('File exceeds 5,000 rows, 100 columns or the cell size limit');}
+ if(quoted)throw new Error('Unclosed quoted value in CSV');if(cell||row.length){row.push(cell);rows.push(row);}return rows;
+}
+export function csvExport(rows:string[][]){return rows.map(row=>row.map(value=>`"${(/^[=+\-@\t\r]/.test(value)?`'${value}`:value).replaceAll('"','""')}"`).join(',')).join('\r\n');}
+export function downloadCsv(filename:string,rows:string[][]){const url=URL.createObjectURL(new Blob(['\uFEFF'+csvExport(rows)],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url);}
+export async function readWorkbook(file:File):Promise<{name:string;rows:string[][]}[]>{
+ if(file.size>2*1024*1024)throw new Error('Use a file smaller than 2 MB');
+ if(!/\.xlsx$/i.test(file.name))throw new Error('Use CSV or .xlsx. Save old .xls files as .xlsx first.');
+ const Excel=await import('exceljs');const workbook=new Excel.default.Workbook();await workbook.xlsx.load(await file.arrayBuffer());
+ if(workbook.worksheets.length>20)throw new Error('Use a workbook with at most 20 worksheets');
+ return workbook.worksheets.map(sheet=>{if(sheet.rowCount>5000||sheet.columnCount>100)throw new Error('Worksheet exceeds 5,000 rows or 100 columns');const rows:string[][]=[];for(let n=1;n<=sheet.rowCount;n++){const values:string[]=[];for(let c=1;c<=sheet.columnCount;c++){const cell=sheet.getRow(n).getCell(c);if(cell.type===Excel.default.ValueType.Formula||cell.type===Excel.default.ValueType.Error)values.push('#UNSUPPORTED_CELL');else{let value=cell.text;if(typeof cell.value==='number'&&/^0+$/.test(cell.numFmt??''))value=String(cell.value).padStart(cell.numFmt.length,'0');values.push(value);}}rows.push(values);}return {name:sheet.name,rows};});
+}
+export const importFields={customers:[['fullName','Customer name','name,fullname,customername,client,buyer'],['phoneNumber','Phone / WhatsApp','phone,phonenumber,mobile,telephone,whatsapp']],stock:[['vinChassis','VIN / chassis','vin,chassis,chassisnumber,vinchassis'],['make','Make','make,brand'],['model','Model','model'],['year','Year','year,modelyear'],['category','Vehicle category','category,vehiclecategory'],['askingPrice','Asking price (USD)','askingprice,sellingprice,priceusd,price'],['location','Location','location,town,city'],['ownership','Ownership','ownership'],['acquisitionCost','Acquisition / settlement cost (USD)','acquisitioncost,purchasecost,buyingprice,purchaseprice'],['directCosts','Direct costs (USD)','directcosts,preparationcosts'],['costsComplete','Costs complete: yes/no','costscomplete']]} as const;

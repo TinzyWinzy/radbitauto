@@ -1,0 +1,32 @@
+{
+  "base": "https://studio-285787437-bc95b.web.app",
+  "results": [
+    {
+      "width": 320,
+      "flowLayout": "passed",
+      "noAutomaticPrompt": "passed",
+      "persistentDismissal": "passed",
+      "loginSuppression": "passed",
+      "install": "passed"
+    },
+    {
+      "width": 390,
+      "flowLayout": "passed",
+      "noAutomaticPrompt": "passed",
+      "persistentDismissal": "passed",
+      "loginSuppression": "passed",
+      "install": "passed"
+    },
+    {
+      "width": 1440,
+      "flowLayout": "passed",
+      "noAutomaticPrompt": "passed",
+      "persistentDismissal": "passed",
+      "loginSuppression": "passed",
+      "install": "passed"
+    }
+  ],
+  "installationFailure": "passed",
+  "appInstalled": "passed",
+  "iosInstructions": "passed"
+}

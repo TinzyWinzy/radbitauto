@@ -1,0 +1,131 @@
+Technical Specification: Multi-Tenant Vehicle Import Customer Portal PWA
+
+1. Project Overview and Tech Stack
+
+1.1 Core Mission
+
+The mission is to architect a robust, multi-tenant "My Vehicle Import Dashboard" that transitions fragmented logistics communication—currently siloed in WhatsApp and physical paperwork—into a centralized, operational PWA. The system serves as the single source of truth for tenants (e.g., Eddy Customs, Muchy Motors) and their customers, providing real-time visibility into vehicle sourcing, shipping status, regulatory compliance, and financial standing.
+
+1.2 Technical Requirements
+
+The stack is selected for high offline availability, rapid mobile performance, and secure multi-tenant scaling.
+
+Component	Technology	Rationale
+Framework	Vite + React	High-performance HMR and reactive UI components for state-heavy dashboards.
+PWA Tooling	vite-plugin-pwa (Workbox)	Manages service workers for "Offline Shell" and background sync.
+Local Database	IndexedDB via Dexie.js	Provides ACID-compliant local storage with complex querying capabilities.
+Deployment	Vercel	Global CDN delivery and seamless environment-based tenant staging.
+Design	Tailwind CSS	Mobile-first utility framework to implement a professional automotive aesthetic.
+
+2. Multi-Tenant Architecture & Security
+
+2.1 Tenant Isolation Strategy
+
+The application employs a "Shared Database, Shared Schema" model with strict logical isolation.
+
+* Data Level: Every table includes a tenant_id foreign key. All Dexie queries must utilize a middleware wrapper or Dexie Hook to automatically inject where('tenant_id').equals(current_tenant_id) to prevent cross-tenant data leakage.
+* Security Level: Authentication must use JSON Web Tokens (JWT). The tenant_id must be embedded as a non-editable claim within the JWT. The server-side API (Vercel Functions) must validate this claim against the requested resource's tenant_id before returning any data. Client-side role checks are strictly for UI/UX tailoring and are not a security barrier.
+
+2.2 Configuration Parameters
+
+The UI and logic adapt to a tenant configuration object:
+
+* Branding: Name, Logo, Brand Primary/Secondary Colors.
+* Logistics: Case ID Prefix (e.g., EC-, MM-), default Port of Entry (Durban, Beira, or Walvis Bay).
+* Workflow: Enable/Disable specific import stages (e.g., some agents may skip "Sourcing" if the customer already bought the car).
+* Integration: WhatsApp number for deep-linking.
+
+3. Data Model & Dexie.js Schema
+
+To support the operational audit trail and multi-tenancy, the schema is defined with specific indexing on tenant_id.
+
+Table	Primary Key	Key Fields
+companies	id	name, logo_url, case_prefix, contact_whatsapp, primary_color
+users	id	email, role (Admin/Staff/Customer), tenant_id
+customers	id	full_name, phone_number, whatsapp_ref, tenant_id
+vehicles	id	vin_chassis (indexed), engine_no, make, model, year, eaa_status
+import_cases	id	case_id (prefix + seq), customer_id, vehicle_id, current_stage, tenant_id
+import_stage_updates	id	case_id, stage_name, status, staff_id, timestamp, note
+quotations	id	case_id, cif_value, total_duty, total_surtax, total_vat, status
+payments	id	case_id, amount, method (EcoCash/InnBucks/Bank), status (Pending/Confirmed)
+documents	id	case_id, type (BOL/EAA/Manifest), s3_url, uploaded_at
+
+4. Regulatory & Business Logic (Zimbabwe Corridor)
+
+4.1 Import Compliance (SI 54 of 2024 & SI 172 of 2024)
+
+The system must enforce the 10-year age restriction for passenger and light commercial vehicles, while allowing specific exemptions per SI 172 of 2024:
+
+* General Rule: Prohibited if >10 years from manufacture.
+* Exemptions:
+  * Commercial: Heavy haulage trucks, tractors, and mining equipment have no age cap.
+  * Returning Residents: Must have resided abroad >24 months and owned the vehicle >6 months.
+  * Antique/Classic Vehicles: Must be 25+ years old. The system must flag these as requiring a Ministry of Industry and Commerce Import License, satisfying five criteria: Era-representative design, Originality, Well-maintained condition, Rarity, and Historical significance.
+
+4.2 CIF Valuation and Tax Logic
+
+Valuation must follow ZIMRA standards based on Cost, Insurance, and Freight (CIF).
+
+* Valuation Basis: Logic should use the Purchase Invoice, but fallback to the Japanese Yellow Book Value if the invoice is contested by ZIMRA.
+* Components: CIF = [Purchase Price] + [Shipping to Port (Durban/Beira/Walvis Bay)] + [Insurance] + [Port/Storage Charges] + [Freight to Zimbabwe Border].
+* Tax Rates:
+  * Customs Duty: 25%–40% (Engine-size dependent).
+  * Import Duty: Standard ~20%.
+  * VAT: 15% (Applied to CIF + Customs Duty + Surtax).
+  * Surtax: 25% (Mandatory for vehicles older than 5 years).
+  * Carbon Tax: Flat fee determined by engine capacity ranges.
+
+5. PWA, Offline & Logistics Strategy
+
+5.1 Service Worker & Sync (Workbox)
+
+* Caching Strategy:
+  * StaleWhileRevalidate for the main dashboard and vehicle lists.
+  * NetworkFirst for financial quotations and payment records to ensure data integrity.
+* Conflict Resolution: Use a versioned state logic. If a staff member and admin update a vehicle status simultaneously while offline, Dexie should resolve via "Server-Version-Wins"; the local client must prompt the user to merge or overwrite if local changes are out-of-sync with the server's version counter.
+
+5.2 Mandatory Documentation
+
+The "Document Vault" logic must require the following for a case to be considered "Clearance Ready":
+
+1. Export Certificate (Japanese authorities).
+2. Bill of Lading (BOL).
+3. Road Manifest (Clearing agent provided).
+4. Condition Report (Detailed mechanical/exterior status).
+5. EAA Certificate of Conformity: Mandatory PVoC (Pre-shipment Verification of Conformity) via East Africa Automobile Services. System constraint: Stage "Shipped" cannot be toggled until this certificate is uploaded.
+
+6. Functional Interface Modules
+
+6.1 Customer Dashboard ("My Imports")
+
+* Visual Progress: 13-stage vertical timeline (Enquiry to Delivered).
+* Status Indicators: Highly visible labels (🚢 In Transit, 🛂 In Clearance, ✅ Ready for Collection).
+* WhatsApp Deep-link: Button uses tenant's number and pre-fills: "Hello, I need an update on Case [TENANT_PREFIX]-[CASE_ID]".
+
+6.2 Staff & Admin Pipeline
+
+* Operational Pipeline: Kanban or list view filtered by stage (e.g., "Vehicles Awaiting EAA").
+* Audit Trail: Every change to a vehicle's status or a payment record must be logged in import_stage_updates with the Staff User ID and a timestamp.
+
+7. Implementation Prompts (Dev Agent)
+
+Prompt 1: Scaffolding & Multi-Tenancy
+
+"Initialize a Vite + React project with vite-plugin-pwa. Create a configuration-driven architecture where a tenantConfig object controls the Case ID prefix, primary colors, and WhatsApp number. Set up a Layout wrapper that contextually loads branding based on the URL or JWT claim."
+
+Prompt 2: Database Layer & Indexing
+
+"Setup Dexie.js with the defined schema for import_cases, vehicles, and payments. Implement Dexie Hooks for creating and reading that automatically inject/filter by tenant_id. Ensure vin_chassis and tenant_id are compound-indexed for performance."
+
+Prompt 3: Regulatory Logic Engine
+
+"Build a utility function calculateZimbabweTaxes(cif, age, engineSize, isCommercial). Implement logic for 15% VAT, 25% Surtax for vehicles >5 years, and engine-capacity-based Carbon Tax. Add a validation helper that flags vehicles >10 years as 'Requires Exemption' unless marked as 'Commercial' or 'Antique'."
+
+Prompt 4: Timeline & Document Validation
+
+"Create a 13-stage vertical progress component. Add logic that prevents staff from moving an import case to the 'Shipped' stage unless a document with the type 'EAA_CERTIFICATE' is present in the documents table for that case_id."
+
+8. Deployment & Environment Setup
+
+* Vercel Staging: Use environment variables (e.g., VITE_APP_TENANT_MODE) to toggle between tenant-specific preview deployments.
+* Global Search: Implement a staff-only global search across vin_chassis, customer_name, and case_id.
