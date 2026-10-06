@@ -11,7 +11,7 @@ export { createVehicle } from './vehicles.ts';
 export { convertDealerLead, customerRetailPurchases, dealerSaleDetails, issueDealerSaleDocument, updateDealerStockDetails, createDealerAcquisition, updateDealerAcquisition, dealerAcquisitionDetails, attachDealerStockPhoto, recordImportDealResult, importDealResults } from './dealerJourneys.ts';
 export { dealershipWorkspace, saveDealerLead, addDealerStock, reserveDealerStock, updateDealerSale, publishDealerStock, dealerShowroom, enquireDealerShowroom, publicVehicleCatalogue } from './dealership.ts';
 export { bootstrapCompany, createStaff, linkCustomer, deactivateAccount, ensureBaseline } from './bootstrap.ts';
-export { claimPlatformAdmin, assumeTenantRole, leaveTenant, backfillVehicleCustomers } from './platform.ts';
+export { claimPlatformAdmin, backfillVehicleCustomers } from './platform.ts';
 export { searchCases } from './search.ts';
 export { onUserCreate } from './auth.ts';
 export { registerAgency } from './registration.ts';

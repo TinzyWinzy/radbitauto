@@ -1,23 +1,45 @@
-# Agency onboarding
+# Set up your account — dealership onboarding wizard
 
 Portal: https://studio-285787437-bc95b.web.app
 Support: brandontinoz@gmail.com
 
-Each agency registers independently. Do not share accounts between agencies.
+Each dealership registers independently. Do not share accounts between dealerships.
 
-1. Open the portal and choose **Create your agency workspace**. Create your owner account, send the verification email and follow its link. Return to the portal and select **I have verified my email** to unlock agency setup.
-2. Set your agency name, unique workspace address, WhatsApp number, case prefix, arrival port and operation type: sourcing, clearing or both. All monetary records use USD.
-3. Check your agency settings and branding. Your workspace starts empty with a first-customer checklist. Overview shows agency-wide active cases, outstanding USD balances and actions for quotations, pending payments and validated documents awaiting review. Refresh the overview after reviewing actions.
-4. Add a customer record before opening an enquiry. A vehicle is optional initially; attach it once sourced. Japanese chassis/frame numbers are accepted.
-5. In Reports and invitations, create a staff invitation or select an unlinked customer for a customer invitation. Copy the private link and send it to the intended recipient. It expires after seven days and requires the matching verified email address. An existing customer keeps their case history when they join.
-6. For sourced vehicles, enter the public BE FORWARD listing and supplier stock/invoice references. Supplier records are staff-only. Continue purchasing through your existing supplier account; the portal does not make purchases or represent BE FORWARD.
-7. Enter the actual invoice and itemised freight, insurance, border transport, port charges, local delivery and agency fee. Review the estimate before issuing a quotation. Your clearing practitioner must verify rates and classification before reliance on customs figures.
-8. Customers can review and accept their current quotation and print/save a PDF. A changed price requires a new version.
-9. Record payments with transaction references and confirm them after checking the bank, cash or mobile-money evidence. The portal records payments; it does not move money. Print a receipt after confirmation. An owner can reverse an incorrect payment or record a completed external refund, retaining the original audit history.
-10. Update stages and documents. Use the case WhatsApp action to compose an update with a secure portal link, then send it through WhatsApp. Customers sign in to view their own cases.
-11. Use Reports for agency-wide cases, confirmed collections, outstanding balances and quoted agency fees. Collections and quoted fees are not a profit statement.
+Think of onboarding as a short wizard. Finish each step before moving on.
 
-On a phone, use the browser's install/add-to-home-screen action. Installation requires HTTPS and a supported browser. An internet connection is required to access current operational records. Sign out on shared devices. Password recovery is available on the sign-in page.
+**Step 1 — Create your owner account**
+Open the portal and choose **Create your dealership workspace**. Enter your name, email and a password, then verify the email we send you. Return to the portal and tap **I have verified my email**.
+
+**Step 2 — Register your dealership**
+Set your dealership name, your unique showroom address (e.g. `/showroom/city-motors`), WhatsApp number, case prefix (e.g. `CM`), default arrival port and operation type: sourcing, clearing or both. All records use USD.
+
+**Step 3 — Set your branding**
+Choose your brand colour. Your workspace starts with a first-customer checklist on the dashboard, which shows active cases, outstanding USD balances and actions waiting on you.
+
+**Step 4 — Add your first customer**
+Add the customer before opening an enquiry. A vehicle is optional at first — attach it once it's sourced. Japanese chassis/frame numbers are accepted.
+
+**Step 5 — Invite your team and customers**
+From Team → Invitations, create a staff or customer invite. Copy the private link, or share it via WhatsApp or email. Links expire after seven days and only work with the invited email address. A customer who already has history keeps it when they join.
+
+**Step 6 — Add your stock**
+Open Dealer to register vehicles — owned or consigned. Add photos, pick the cover shot, set the asking price and location, then publish to your public showroom. Unpublished stock stays private.
+
+**Step 7 — Work your first enquiry**
+For a customer import, enter the supplier listing and stock/invoice references (supplier records are staff-only). Enter the actual invoice and itemised freight, insurance, border transport, port charges, local delivery and your agency fee, then issue a USD quotation. Customers can accept and print/save a PDF.
+
+**Step 8 — Record payments and receipts**
+Record each payment with its transaction reference, then confirm it after checking the bank, cash or mobile-money evidence. The portal records payments — it never moves money. Print a receipt after confirmation. Owners can reverse mistakes while keeping the audit history.
+
+**Step 9 — Keep buyers informed**
+Use the case WhatsApp action to send a secure portal link, so customers can follow their own case, documents and balance on their phone.
+
+**Step 10 — Review your numbers**
+Reports show dealership-wide cases, confirmed collections, outstanding balances and quoted fees. Collections are not profit. On busy days, refresh the overview after clearing actions.
+
+Before your first real import, confirm customer details, tax rates, quotation and document checklist with your administrator. Report issues with the case number — never email passwords or supplier login credentials.
+
+**On your phone:** use the browser's install/add-to-home-screen action. HTTPS and a supported browser are required, and you need internet for live records. Sign out on shared devices. Password recovery is on the sign-in page.
 
 New workspaces begin with pilot access and no automatic subscription charge. Platform subscription invoices are handled manually; the platform owner agrees the USD price directly with each agency. Agency service fees entered on import quotations belong to that agency.
 
@@ -64,7 +86,7 @@ Files are read locally; only mapped record fields are submitted. Formula/error c
 
 ## Subscription launch (4 October 2026)
 
-New agencies start a 30-day Dealer trial (USD 29/month thereafter by manual arrangement; 5 business team members, 50 active vehicles/enquiries). Solo is USD 15/month (2 business team members, 15 active vehicles/enquiries). Customers are free. Core journeys are shared. Completed history is retained. See [SUBSCRIPTION_RELEASE.md](SUBSCRIPTION_RELEASE.md) for precise counting, enforcement, legacy migration, export and measurement boundaries.
+New agencies start a 14-day Dealer trial (USD 29/month thereafter by manual arrangement; 5 business team members, 50 active vehicles/enquiries). Solo is USD 15/month (2 business team members, 15 active vehicles/enquiries). Customers are free. Core journeys are shared. Completed history is retained. See [SUBSCRIPTION_RELEASE.md](SUBSCRIPTION_RELEASE.md) for precise counting, enforcement, legacy migration, export and measurement boundaries.
 
 Owners use **Plan & billing** in the workspace. A plan request does not change access. The platform operator reviews agency usage, verifies payment externally and records the invoice/payment references, plan and access end date in **Agency subscriptions**. Paid activation requires both references. For an agreed subscription lapse use paused/read-only, rather than security suspension. Existing pilot agencies require an agreed migration/start date; no silent price change or automatic cutoff is applied.
 

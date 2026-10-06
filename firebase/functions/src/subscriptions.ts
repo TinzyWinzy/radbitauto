@@ -5,7 +5,7 @@ import { contextFrom, requireAdmin, requirePlatformCaller } from './claims.ts';
 import { PLANS, subscriptionState, activeVehicleKeys } from './subscriptionPolicy.ts';
 import { ts } from './audits.ts';
 export { PLANS, subscriptionState } from './subscriptionPolicy.ts';
-export function trialSubscription() { return { version: 1, planId: 'dealer', status: 'trial', monthlyCents: 2900, currency: 'USD', billingMethod: 'manual_invoice', accessUntil: Timestamp.fromMillis(Date.now() + 30 * 86400000), startedAt: ts() }; }
+export function trialSubscription() { return { version: 1, planId: 'dealer', status: 'trial', monthlyCents: 2900, currency: 'USD', billingMethod: 'manual_invoice', accessUntil: Timestamp.fromMillis(Date.now() + 14 * 86400000), startedAt: ts() }; }
 export function assertSubscriptionWritable(company: any) {
   if (!subscriptionState(company?.subscription).writable) throw new HttpsError('failed-precondition', 'Subscription is read-only. Your owner can renew from Billing; existing records remain available.');
 }

@@ -115,11 +115,6 @@ export const api = {
   saveCaseSupplier: make<{ caseId: string; supplierName: string; stockReference: string; purchaseReference: string; listingUrl: string }, { saved: boolean }>('saveCaseSupplier'),
   createCustomerRecord: make<{ fullName: string; phoneNumber: string; idempotencyKey: string }, { customerId: string }>('createCustomerRecord'),
   registerAgency: make<{ businessFocus?: 'retail' | 'imports' | 'hybrid'; name: string; slug: string; casePrefix: string; contactWhatsapp: string; primaryColor: string; operationMode: 'sourcing' | 'clearing' | 'both'; defaultPort: string }, { companyId: string }>('registerAgency'),
-  assumeTenantRole: make<
-    { companyId: string; role: 'staff' | 'admin' | 'customer'; customerId?: string },
-    { appRole: string; companyId: string; customerId?: string }
-  >('assumeTenantRole'),
-  leaveTenant: make<Record<string, never>, { appRole: string }>('leaveTenant'),
   bootstrapCompany: make<BootstrapCompanyInput, { companyId: string; adminUid: string; tempPassword: string | null }>(
     'bootstrapCompany',
   ),

@@ -4,7 +4,7 @@
 
 ## Product
 
-- Plans: Solo at $15/month (2 team members, 15 active vehicles) and Dealer at $29/month (5 team members, 50 active vehicles), in USD, with a 30-day Dealer trial. Customer accounts are free.
+- Plans: Solo at $15/month (2 team members, 15 active vehicles) and Dealer at $29/month (5 team members, 50 active vehicles), in USD, with a 14-day Dealer trial. Customer accounts are free.
 - Channels: public showroom links per dealer, WhatsApp for conversation, the portal for records.
 - The portal does not move money, does not hold supplier credentials, and does not claim a BE FORWARD partnership.
 

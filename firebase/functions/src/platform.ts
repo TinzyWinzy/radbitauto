@@ -15,77 +15,6 @@ export const claimPlatformAdmin = onCall(async (request) => {
   return { appRole: 'platform_admin' };
 });
 
-export const assumeTenantRole = onCall<{
-  companyId: string;
-  role: 'staff' | 'admin' | 'customer';
-  customerId?: string;
-}>(async (request) => {
-  const ctx = contextFrom(request);
-  await requirePlatformCaller(ctx);
-  const { companyId, role, customerId } = request.data;
-  if (!companyId || !role) {
-    throw new HttpsError('invalid-argument', 'companyId and role are required');
-  }
-  if (role !== 'staff' && role !== 'admin' && role !== 'customer') {
-    throw new HttpsError('invalid-argument', 'role must be staff, admin or customer');
-  }
-  const companySnap = await db.collection('companies').doc(companyId).get();
-  if (!companySnap.exists || companySnap.data()?.isActive !== true) {
-    throw new HttpsError('not-found', 'company not found or inactive');
-  }
-
-  if (role === 'customer') {
-    if (!customerId) {
-      throw new HttpsError('invalid-argument', 'customerId is required for customer view');
-    }
-    const custSnap = await db.collection('customers').doc(customerId).get();
-    const cust = custSnap.data() as { companyId?: string; isActive?: boolean; userId?: string } | undefined;
-    if (!custSnap.exists || cust?.companyId !== companyId || cust.isActive !== true) {
-      throw new HttpsError('not-found', 'customer not found in this company');
-    }
-    if (cust.userId) {
-      const userSnap = await db.collection('users').doc(cust.userId).get();
-      if (!userSnap.exists || userSnap.data()?.isActive !== true) {
-        throw new HttpsError('failed-precondition', 'customer user is inactive');
-      }
-    }
-    await getAuth().setCustomUserClaims(ctx.uid, {
-      app_role: 'customer',
-      company_id: companyId,
-      customer_id: customerId,
-      platform_admin: true,
-    });
-    await writeAudit({
-      companyId,
-      actorId: ctx.uid,
-      entityType: 'users',
-      entityId: ctx.uid,
-      action: 'platform.assume',
-      detail: { role, customerId },
-    });
-    return { appRole: 'customer', companyId, customerId };
-  }
-
-  await db.runTransaction(async txn => {
-    const company = await txn.get(db.doc(`companies/${companyId}`));if(company.data()?.isActive!==true)throw new HttpsError('permission-denied','Agency unavailable');
-    txn.set(db.doc(`staff/${ctx.uid}`), { companyId, role, isActive: true, isPlatformView:true, createdAt: ts() }, { merge: true });
-  });
-  await getAuth().setCustomUserClaims(ctx.uid, {
-    app_role: role,
-    company_id: companyId,
-    platform_admin: true,
-  });
-  await writeAudit({
-    companyId,
-    actorId: ctx.uid,
-    entityType: 'users',
-    entityId: ctx.uid,
-    action: 'platform.assume',
-    detail: { role },
-  });
-  return { appRole: role, companyId };
-});
-
 export const backfillVehicleCustomers = onCall<{ limit?: number }>(async (request) => {
   const ctx = contextFrom(request);
   await requirePlatformCaller(ctx);
@@ -117,22 +46,4 @@ export const backfillVehicleCustomers = onCall<{ limit?: number }>(async (reques
     detail: { scanned: snap.size, linked, skipped },
   });
   return { scanned: snap.size, linked, skipped };
-});
-
-export const leaveTenant = onCall(async (request) => {
-  const ctx = contextFrom(request);
-  await requirePlatformCaller(ctx);
-  await getAuth().setCustomUserClaims(ctx.uid, {
-    app_role: 'platform_admin',
-    platform_admin: true,
-  });
-  await writeAudit({
-    companyId: ctx.companyId,
-    actorId: ctx.uid,
-    entityType: 'users',
-    entityId: ctx.uid,
-    action: 'platform.leave',
-    detail: {},
-  });
-  return { appRole: 'platform_admin' };
 });

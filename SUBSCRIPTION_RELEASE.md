@@ -4,7 +4,7 @@
 
 Solo: USD 15/month, 2 active business team members including administrators/owner, 15 active vehicles/enquiries.
 Dealer: USD 29/month, 5 active business team members including administrators/owner, 50 active vehicles/enquiries.
-New self-service and platform-created agencies receive a 30-day Dealer trial. Customer portal accounts do not consume staff seats. Verified platform support views do not consume business seats. Growth is not offered.
+New self-service and platform-created agencies receive a 14-day Dealer trial. Customer portal accounts do not consume staff seats. Verified platform support views do not consume business seats. Growth is not offered.
 All core stock, import, sales, documentation, customer portal and CSV/Excel workflows are shared across both plans. There is no automated payment collection, recurring debit, Paynow integration or automatic supplier integration.
 
 ## Enforcement

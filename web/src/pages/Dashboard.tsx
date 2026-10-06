@@ -25,7 +25,7 @@ function TrialBanner() {
   if (days === null) return null;
   return (
     <section className="workflow-record mb-6 border border-amber-500/40" role="alert">
-      <h2 className="font-display text-xl font-bold">Your 30-day Dealer trial ends in {days} day{days === 1 ? '' : 's'}</h2>
+      <h2 className="font-display text-xl font-bold">Your 14-day Dealer trial ends in {days} day{days === 1 ? '' : 's'}</h2>
       <p className="mt-2 text-sm text-slate-300">Your records stay readable after the trial. Email support before it ends to keep write access on Solo ($15/mo) or Dealer ($29/mo).</p>
       <Link to="/app/billing" className="btn-ghost mt-3 inline-flex">Open plan &amp; billing</Link>
     </section>
