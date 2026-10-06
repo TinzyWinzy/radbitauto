@@ -19,6 +19,7 @@ import Seo from '../components/Seo';
 export default function Login() {
   const [params] = useSearchParams();
   const invited = params.get('next')?.startsWith('/invite/') === true;
+  const customerIntent = !invited && params.get('intent') === 'customer';
   const [mode, setMode] = useState<'signin' | 'signup'>(params.get('mode') === 'signup' ? 'signup' : 'signin');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -116,15 +117,15 @@ export default function Login() {
             </span>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">
-                {mode === 'signup' ? invited ? 'Your invitation' : 'Agency registration · step 1 of 3' : 'Welcome back'}
+                {mode === 'signup' ? invited ? 'Your invitation' : customerIntent ? 'Customer account' : 'Agency registration · step 1 of 3' : 'Welcome back'}
               </p>
               <h1 className="font-display text-2xl font-bold tracking-tight text-slate-50">
-                {mode === 'signup' ? invited ? 'Create your account' : 'Create your owner account' : 'Sign in to your workspace'}
+                {mode === 'signup' ? invited ? 'Create your account' : customerIntent ? 'Create your customer account' : 'Create your owner account' : 'Sign in to your workspace'}
               </h1>
             </div>
           </div>
           <p className="text-sm leading-relaxed text-slate-400">
-            {mode === 'signup' ? invited ? 'Use the email your invitation was issued to. Your existing case history stays with your agency.' : 'Start with your details. Set up your agency after verifying your email.' : 'Your account opens the agency or customer workspace you belong to.'}
+            {mode === 'signup' ? invited ? 'Use the email your invitation was issued to. Your existing case history stays with your agency.' : customerIntent ? 'Your dealer links this email to your record. Vehicle history, payments and documents then appear in your account.' : 'Start with your details. Set up your agency after verifying your email.' : 'Your account opens the agency or customer workspace you belong to.'}
           </p>
         </div>
 

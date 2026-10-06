@@ -6,7 +6,6 @@ import { api } from '../lib/api';
 import { useCompanyDoc, useCompanySettings, useNotifications, useStaff } from '../lib/hooks';
 import { setAppBadge } from '../lib/share';
 import { Button, Card } from '../components/ui';
-import { ReturnToPlatform } from '../components/platform';
 import { PageHeader } from '../components/status';
 import { Link } from 'react-router-dom';
 
@@ -102,7 +101,6 @@ export default function Account() {
         <Button variant="ghost" onClick={resetPassword} loading={busy}>
           {resetSent ? 'Reset link sent — check your inbox' : 'Reset password'}
         </Button>
-        <ReturnToPlatform />
         <Button variant="danger" onClick={() => signOut(auth)}>
           Sign out
         </Button>

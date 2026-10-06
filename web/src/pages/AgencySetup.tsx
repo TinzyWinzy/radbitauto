@@ -7,7 +7,7 @@ import { useAuth } from '../lib/auth';
 import { Button, Field, Input, Select } from '../components/ui';
 
 export default function AgencySetup() {
-  const { user, refreshClaims } = useAuth();
+  const { user, claims, waitForClaims } = useAuth();
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
@@ -25,7 +25,9 @@ export default function AgencySetup() {
     event.preventDefault(); setBusy(true); setError('');
     try {
       await api.registerAgency({ businessFocus:focus, name, slug, casePrefix: prefix, contactWhatsapp: whatsapp, primaryColor: colour, operationMode: mode, defaultPort: port });
-      await refreshClaims(); navigate('/app', { replace: true });
+      const claims = await waitForClaims();
+      if (claims?.companyId) navigate('/app', { replace: true });
+      else setError('Your agency was created but your session is not updated yet. Wait a few seconds and sign in again.');
     } catch (err) { setError((err as Error).message); }
     finally { setBusy(false); }
   }
@@ -37,6 +39,7 @@ export default function AgencySetup() {
       <p className="mt-2 text-sm text-slate-400">Create your business workspace, publish vehicles and keep every customer deal organised. Your team and customers join your agency by invitation.</p>
       {!verified ? <EmailVerification returnPath="/agency/setup" onVerified={() => setVerified(true)} /> : null}
       {error ? <p role="alert" className="mt-4 text-sm text-red-300">{error}</p> : null}
+      {claims.customerId ? <p role="alert" className="mt-4 text-sm text-amber-300">This account is linked as a customer of another agency. Creating your own workspace replaces that customer access; your vehicle and payment history remains with your original agency.</p> : null}
       <p className="mt-5 text-sm text-slate-400">Your agency starts with a 30-day Dealer trial: 5 team members including you, and 50 active vehicles/enquiries. Afterwards choose Solo ($15/month) or Dealer ($29/month), in USD. Payment is arranged manually; there is no automatic charge. If access expires, existing records remain readable.</p>
       <form onSubmit={submit} className={`mt-6 space-y-4 ${!verified ? 'hidden' : ''}`}>
         <fieldset disabled={busy || !verified} className="space-y-4 disabled:opacity-60">

@@ -16,14 +16,16 @@ interface AuthState {
   user: User | null;
   claims: Claims;
   loading: boolean;
-  refreshClaims: () => Promise<void>;
+  refreshClaims: () => Promise<Claims | undefined>;
+  waitForClaims: () => Promise<Claims | undefined>;
 }
 
 const AuthCtx = createContext<AuthState>({
   user: null,
   claims: {},
   loading: true,
-  refreshClaims: async () => {},
+  refreshClaims: async () => undefined,
+  waitForClaims: async () => undefined,
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -62,20 +64,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshClaims = useMemo(
     () => async () => {
       const u = auth.currentUser;
-      if (!u) return;
+      if (!u) return undefined;
       const r = await getIdTokenResult(u, true);
-      setClaims({
+      const next: Claims = {
         appRole: typeof r.claims.app_role === 'string' ? r.claims.app_role : undefined,
         companyId: typeof r.claims.company_id === 'string' ? r.claims.company_id : undefined,
         customerId: typeof r.claims.customer_id === 'string' ? r.claims.customer_id : undefined,
         platformAdmin: r.claims.platform_admin === true,
-      });
+      };
+      setClaims(next);
+      return next;
     },
     [],
   );
 
+  const waitForClaims = useMemo(
+    () => async () => {
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const next = await refreshClaims();
+        if (next?.companyId) return next;
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+      return refreshClaims();
+    },
+    [refreshClaims],
+  );
+
   return (
-    <AuthCtx.Provider value={{ user, claims, loading, refreshClaims }}>{children}</AuthCtx.Provider>
+      <AuthCtx.Provider value={{ user, claims, loading, refreshClaims, waitForClaims }}>{children}</AuthCtx.Provider>
   );
 }
 

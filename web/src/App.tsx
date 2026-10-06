@@ -152,6 +152,7 @@ function HomeRedirect() {
 function LandingRoute() {
   const { user, claims, loading } = useAuth();
   if (loading) return <Spinner />;
-  if (user) return <Navigate to={routeFor(claims)} replace />;
+  if (user && claims.companyId) return <Navigate to="/app" replace />;
+  if (user && claims.appRole === 'platform_admin' && claims.platformAdmin) return <Navigate to="/onboarding" replace />;
   return <Landing />;
 }

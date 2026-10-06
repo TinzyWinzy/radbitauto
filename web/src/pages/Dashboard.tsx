@@ -15,6 +15,23 @@ import { db } from '../lib/firebase';
 import { RetailPurchaseCards } from './RetailPurchase';
 import DealerOverview from '../components/DealerOverview';
 
+function TrialBanner() {
+  const [days, setDays] = useState<number | null>(null);
+  useEffect(() => {
+    api.subscriptionOverview({}).then((d) => {
+      if (d.status === 'trial' && typeof d.daysRemaining === 'number' && d.daysRemaining <= 7) setDays(d.daysRemaining);
+    }).catch(() => undefined);
+  }, []);
+  if (days === null) return null;
+  return (
+    <section className="workflow-record mb-6 border border-amber-500/40" role="alert">
+      <h2 className="font-display text-xl font-bold">Your 30-day Dealer trial ends in {days} day{days === 1 ? '' : 's'}</h2>
+      <p className="mt-2 text-sm text-slate-300">Your records stay readable after the trial. Email support before it ends to keep write access on Solo ($15/mo) or Dealer ($29/mo).</p>
+      <Link to="/app/billing" className="btn-ghost mt-3 inline-flex">Open plan &amp; billing</Link>
+    </section>
+  );
+}
+
 function stageIndex(key: string): number {
   return Math.max(0, STAGES.findIndex((s) => s.key === key));
 }
@@ -200,6 +217,7 @@ function StaffDashboard() {
       />
 
       {overviewError ? <ErrorState message={`Overview unavailable: ${overviewError}`} /> : null}
+      {claims.appRole === 'admin' ? <TrialBanner /> : null}
       <AgencyLaunchChecklist/><DealerOverview />
       {!loading && cases.length > 0 ? <>
         <dl className="dashboard-totals"><div><dt>Active cases</dt><dd>{overview ? overview.activeCases : '…'}</dd></div><div><dt>Needs attention</dt><dd>{overview ? `${overview.attentionCount} ${overview.attentionCount === 1 ? 'action' : 'actions'}` : '…'}</dd></div><div><dt>Outstanding across cases</dt><dd>{overview ? <MoneyText cents={overview.outstandingCents} currency="USD" /> : '…'}</dd></div></dl>

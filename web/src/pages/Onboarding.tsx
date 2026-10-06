@@ -6,7 +6,6 @@ import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { api } from '../lib/api';
 import { Button, Field, Input, Select } from '../components/ui';
-import { PlatformSwitcher } from '../components/platform';
 import CommercialControls from '../components/CommercialControls';
 import { PAYMENT_METHODS } from '../lib/types';
 
@@ -224,6 +223,6 @@ export default function Onboarding() {
             Create agency
           </Button>
         </form>
-      </section><aside className="setup-preview"><h2 className="mb-4 font-semibold">Existing agencies</h2><PlatformSwitcher/><h2 className="my-5 font-semibold">Subscription and access</h2><CommercialControls/></aside></div></main>
+      </section><aside className="setup-preview"><h2 className="my-5 font-semibold">Subscription and access</h2><CommercialControls/></aside></div></main>
   );
 }
