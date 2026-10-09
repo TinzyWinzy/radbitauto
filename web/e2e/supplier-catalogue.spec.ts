@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
 import { beforwardSeed } from '../../firebase/functions/src/beforwardSeed';
 const vehicle={...beforwardSeed[0],checkedAt:new Date().toISOString()};
+const estimate={lowCents:780000,highCents:960000,taxesCents:221400,dutyCents:140000,surtaxCents:60000,vatCents:19400,carbonTaxCents:600,outsideCents:[90000,160000],deliveryCents:[70000,160000],agencyFeeCents:40000,dutyPct:40,vatPct:15.5,surtaxPct:35,surtaxApplied:true,vehicleAgeYears:6,ageAssumed:false,tooOld:false,category:'sedan_station_wagon',categoryAssumed:true,asAt:'2026-10-09'};
 test('buyer selects supplier vehicle and dealer; enquiry carries reference and remains inside Radbit',async({page})=>{
- await page.route('**/publicSupplierCatalogue',r=>r.fulfill({json:{result:{stock:[vehicle],limited:true}}}));
+ await page.route('**/publicSupplierCatalogue',r=>r.fulfill({json:{result:{stock:[{...vehicle,estimate}],limited:true}}}));
  await page.route('**/publicVehicleCatalogue',r=>r.fulfill({json:{result:{stock:[],limited:false}}}));
  await page.route('**/publicImportDealers',r=>r.fulfill({json:{result:{dealers:[{slug:'import-motors',name:'Import Motors',operationMode:'sourcing'}],nextCursor:null}}}));
  let submitted:Record<string,unknown>|undefined;
@@ -22,6 +23,7 @@ test('buyer selects supplier vehicle and dealer; enquiry carries reference and r
  const sheet=page.locator('.print-sheet');
  await expect(sheet.getByText('Import enquiry request — Radbit Auto')).toBeVisible();
  await expect(sheet.getByText(`Supplier reference: ${vehicle.id}`)).toBeVisible();
+ await expect(sheet.getByText('Estimated landed cost in Zimbabwe: USD 7,800 - 9,600 (estimate as at 2026-10-09, not a quote)')).toBeVisible();
  await expect(sheet.getByText('Confirm availability of')).toBeVisible();
  await page.getByRole('button',{name:'Close document'}).click();
  await page.goto('/imports');
@@ -34,4 +36,26 @@ test('supplier failures retry; expired cars and no eligible dealers have useful 
  await page.route('**/publicImportDealers',r=>r.fulfill({json:{result:{dealers:[],nextCursor:null}}}));
  await page.goto(`/imports/${vehicle.id}`);await expect(page.getByRole('button',{name:'Try again'})).toBeVisible();failed=false;await page.getByRole('button',{name:'Try again'}).click();await expect(page.getByText('No participating import dealers are accepting enquiries yet.')).toBeVisible();
  await page.goto('/imports/EXPIRED');await expect(page.getByRole('link',{name:'Browse import vehicles'})).toBeVisible();
+});
+
+test('import detail shows supplier specifications and a labelled landed-cost estimate',async({page})=>{
+ await page.route('**/publicSupplierCatalogue',r=>r.fulfill({json:{result:{stock:[{...vehicle,estimate}],limited:true}}}));
+ await page.route('**/publicImportDealers',r=>r.fulfill({json:{result:{dealers:[],nextCursor:null}}}));
+ await page.route('**/publicSupplierVehicle',r=>r.fulfill({json:{result:{photos:vehicle.photos,detail:{chassis:'M700A-0160915',colour:'Silver',drive:'2WD',seats:5,doors:5,weightKg:910,registration:'2020/3',engineCode:'1KR'},estimate}}}));
+ await page.goto('/imports');
+ await expect(page.getByText('Est. landed in Zimbabwe: USD 7,800 - 9,600 (estimate)')).toBeVisible();
+ await page.goto('/imports/'+vehicle.id);
+ const panel=page.getByRole('region',{name:'Estimated landed cost in Zimbabwe'});
+ await expect(panel).toContainText('USD 7,800 - 9,600');
+ await expect(panel).toContainText('Estimate, not a quote.');
+ await expect(panel.getByText('Customs duty (40% of CIF)')).toBeVisible();
+ await expect(panel.getByText('Surtax (35%, vehicle 6 years old)')).toBeVisible();
+ await expect(panel.getByText('How this is estimated')).toBeVisible();
+ const specs=page.locator('.supplier-detail-specs');
+ await expect(specs.getByText('M700A-0160915')).toBeVisible();
+ await expect(specs.getByText('Silver')).toBeVisible();
+ await expect(specs.getByText('2020/3')).toBeVisible();
+ await expect(specs.getByText('2WD')).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.screenshot({path:'release-evidence/supplier-landed-estimate.png',fullPage:true});
 });

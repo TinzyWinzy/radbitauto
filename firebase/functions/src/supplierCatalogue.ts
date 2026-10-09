@@ -7,13 +7,27 @@ import { text, id, cents, owned, leadRef } from './dealership.ts';
 import { transactionWriteCheck, subscriptionState } from './subscriptions.ts';
 import { ts } from './audits.ts';
 import { beforwardSeed } from './beforwardSeed.ts';
-import { fetchBeforwardSelection, freshSupplierVehicle, parseSupplierPhotos, type SupplierVehicle } from './beforwardParser.ts';
+import { fetchBeforwardSelection, freshSupplierVehicle, parseSupplierDetail, type SupplierVehicle, type SupplierDetailSpecs } from './beforwardParser.ts';
+import { globalTaxSet } from './quotations.ts';
+import { supplierLandedEstimate, type SupplierLandedEstimate } from './supplierEstimate.ts';
+import type { TaxRateSet } from './types.ts';
 
 const snapshotRef=db.doc('supplier_catalogues/beforward');
-async function selection() {
+let taxCache:{at:number;set:TaxRateSet|null}|undefined;
+async function activeTaxSet():Promise<TaxRateSet|null> {
+  const now=Date.now();
+  if(taxCache&&now-taxCache.at<300000)return taxCache.set;
+  try { const set=await globalTaxSet(new Date().toISOString().slice(0,10));taxCache={at:now,set};return set; }
+  catch { taxCache={at:now,set:null};return null; }
+}
+export type EstimatedSupplierVehicle = SupplierVehicle & { estimate: SupplierLandedEstimate | null };
+async function selection():Promise<EstimatedSupplierVehicle[]> {
   const snap=await snapshotRef.get();
   const stock:SupplierVehicle[]=snap.exists?snap.data()!.stock:beforwardSeed;
-  return stock.filter(v=>freshSupplierVehicle(v));
+  const fresh=stock.filter(v=>freshSupplierVehicle(v));
+  const taxSet=await activeTaxSet();
+  const refDate=new Date().toISOString().slice(0,10);
+  return fresh.map(v=>({...v,estimate:taxSet?supplierLandedEstimate(v,taxSet,refDate):null}));
 }
 async function refreshSelection() {
   const stock=await fetchBeforwardSelection();
@@ -28,18 +42,21 @@ export const publicSupplierVehicle=onCall({timeoutSeconds:35,maxInstances:2},asy
   const vehicle=(await selection()).find(v=>v.id===id(request.data.supplierVehicleId));
   if(!vehicle)throw new HttpsError('not-found','Supplier listing expired');
   const ref=db.doc(`supplier_photos/${vehicle.id}`),cached=(await ref.get()).data();
-  if(cached&&cached.listingUrl===vehicle.listingUrl&&Date.now()-cached.checkedAt<6*3600000)return {photos:cached.photos};
+  // A cached detail of null records a failed attempt, so the gallery is not refetched for every viewer.
+  if(cached&&cached.listingUrl===vehicle.listingUrl&&Date.now()-cached.checkedAt<6*3600000&&Object.hasOwn(cached,'detail'))return {photos:cached.photos,detail:cached.detail??null,estimate:vehicle.estimate??null};
   // Only the stored supplier URL is fetched; callers cannot supply arbitrary URLs.
   const url=new URL(vehicle.listingUrl);
   if(url.protocol!=='https:'||url.hostname!=='www.beforward.jp'||url.username||url.password||url.port||url.search||url.hash||!/^\/[a-z0-9-]+\/[a-z0-9-]+\/[a-z]{2}\d+\/id\/\d+\/$/.test(url.pathname))throw new HttpsError('failed-precondition','Invalid stored supplier URL');
-  let photos=vehicle.photos;
+  let photos=vehicle.photos,detail:SupplierDetailSpecs|null=null;
   try {
     const response=await fetch(url,{redirect:'error',signal:AbortSignal.timeout(20000)});
     if(!response.ok)throw new Error('Gallery unavailable');
     const html=await response.text();if(html.length>5000000)throw new Error('Gallery exceeds limit');
-    const gallery=parseSupplierPhotos(html,vehicle.id);if(gallery.length)photos=gallery;
+    const parsed=parseSupplierDetail(html,vehicle.id);
+    if(parsed.photos.length)photos=parsed.photos;
+    if(Object.keys(parsed.detail).length)detail=parsed.detail;
   }catch{ /* The captured catalogue photo remains usable when the gallery is unavailable. */ }
-  await ref.set({photos,listingUrl:vehicle.listingUrl,checkedAt:Date.now()});return {photos};
+  await ref.set({photos,detail,listingUrl:vehicle.listingUrl,checkedAt:Date.now()});return {photos,detail,estimate:vehicle.estimate??null};
 });
 
 export function importDealerEligible(c:Record<string,any>) {

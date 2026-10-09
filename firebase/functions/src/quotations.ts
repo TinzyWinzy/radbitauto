@@ -42,6 +42,10 @@ function validatedCharges(value: unknown): QuotationCharges {
   catch (error) { throw new HttpsError('invalid-argument', (error as Error).message); }
 }
 
+export async function globalTaxSet(refDate: string): Promise<TaxRateSet> {
+  return resolveActiveTaxRate(await loadTaxSets(), undefined, refDate);
+}
+
 async function requireUsd(companyId: string, reader: Firestore | Transaction = db): Promise<void> {
   const ref = db.collection('company_settings').doc(companyId);
   const snap = reader === db ? await ref.get() : await (reader as Transaction).get(ref);

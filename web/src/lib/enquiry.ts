@@ -2,7 +2,7 @@ const key = 'radbit:auto:import-enquiry:v1';
 
 export type OpenEnquiry = { ref: string; vehicleId: string; title: string; dealerName: string; dealerSlug: string; dealerWhatsapp: string; url: string; at: number };
 
-export type EnquiryRequest = { ref: string; dealerName: string; buyerName: string; phone: string; budget: string; vehicleTitle: string; supplierId: string; supplierPrice: string; location: string; listingUrl: string; pageUrl: string; notes: string };
+export type EnquiryRequest = { ref: string; dealerName: string; buyerName: string; phone: string; budget: string; vehicleTitle: string; supplierId: string; supplierPrice: string; location: string; listingUrl: string; pageUrl: string; notes: string; landedEstimate?: string };
 
 export function leadRef(docId: string): string {
   return docId.slice(0, 8).toUpperCase();
@@ -38,6 +38,7 @@ export function enquiryRequestText(r: EnquiryRequest): string {
     r.vehicleTitle,
     `Supplier reference: ${r.supplierId}`,
     `Supplier price: ${r.supplierPrice}`,
+    r.landedEstimate ? `Estimated landed cost in Zimbabwe: ${r.landedEstimate}` : '',
     r.location ? `Location: ${r.location}` : '',
     `Listing: ${r.listingUrl}`,
     '',
