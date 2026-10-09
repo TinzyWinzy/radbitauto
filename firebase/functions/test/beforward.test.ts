@@ -32,7 +32,10 @@ const detailPage=`<html><body><table>
  <tr><th>Drive</th><td>2wheel drive</td></tr><tr><th>Doors</th><td>5</td></tr>
  <tr><th>Weight</th><td>910 kg</td></tr><tr><th>Dimension</th><td>3.65&times;1.66&times;1.52 m</td></tr>
  <tr><th>Registration Year/month</th><td>2020/3</td></tr><tr><th>Version/Class</th><td>X L PACKAGE S</td></tr>
- </table><input data-path="//image-cdn.beforward.jp/large/202608/16340830/CE457744_photo1.jpg"></body></html>`;
+ </table><input data-path="//image-cdn.beforward.jp/large/202608/16340830/CE457744_photo1.jpg">
+ <script type="application/ld+json">{"@context":"http://schema.org","@type":["Product","Car"],"name":"TOYOTA PASSO"}</script>
+ <script type="application/ld+json">{"@context":"http://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":3,"@id":"https://www.beforward.jp/stocklist/make=1/veh_type=3/","name":"Hatchback"},{"@type":"ListItem","position":4,"@id":"https://www.beforward.jp/stocklist/make=1/model=221/","name":"Passo"}]}</script>
+ </body></html>`;
 test('extracts buyer-facing detail specifications from a supplier detail page',()=>{
  const parsed=parseSupplierDetail(detailPage,'CE457744');
  assert.equal(parsed.detail.chassis,'M700A-0160915');
@@ -41,9 +44,10 @@ test('extracts buyer-facing detail specifications from a supplier detail page',(
  assert.equal(parsed.detail.drive,'2WD');
  assert.equal(parsed.detail.seats,5);assert.equal(parsed.detail.doors,5);assert.equal(parsed.detail.weightKg,910);
  assert.equal(parsed.detail.dimensions,'3.65×1.66×1.52 m');
- assert.equal(parsed.detail.registration,'2020/3');
- assert.equal(parsed.detail.version,'X L PACKAGE S');
- assert.deepEqual(parsed.photos,['https://image-cdn.beforward.jp/large/202608/16340830/CE457744_photo1.jpg']);
+  assert.equal(parsed.detail.registration,'2020/3');
+  assert.equal(parsed.detail.version,'X L PACKAGE S');
+  assert.equal(parsed.detail.body,'Hatchback');
+  assert.deepEqual(parsed.photos,['https://image-cdn.beforward.jp/large/202608/16340830/CE457744_photo1.jpg']);
 });
 test('normalises four-wheel drive and tolerates markup without a specification table',()=>{
  const html=detailPage.replace('2wheel drive','4WD (4x4)');

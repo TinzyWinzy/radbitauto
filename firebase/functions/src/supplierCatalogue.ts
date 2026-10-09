@@ -21,6 +21,13 @@ async function activeTaxSet():Promise<TaxRateSet|null> {
   catch { taxCache={at:now,set:null};return null; }
 }
 export type EstimatedSupplierVehicle = SupplierVehicle & { estimate: SupplierLandedEstimate | null };
+// The catalogue estimate assumes a body type; a fetched detail (which carries the supplier's
+// body label) refines it so pickups are not budgeted on passenger rates.
+async function estimateFor(vehicle:EstimatedSupplierVehicle, detail?:SupplierDetailSpecs|null):Promise<SupplierLandedEstimate|null> {
+  if(!detail)return vehicle.estimate;
+  const taxSet=await activeTaxSet();
+  return taxSet?supplierLandedEstimate(vehicle,taxSet,new Date().toISOString().slice(0,10),detail):null;
+}
 async function selection():Promise<EstimatedSupplierVehicle[]> {
   const snap=await snapshotRef.get();
   const stock:SupplierVehicle[]=snap.exists?snap.data()!.stock:beforwardSeed;
@@ -43,7 +50,7 @@ export const publicSupplierVehicle=onCall({timeoutSeconds:35,maxInstances:2},asy
   if(!vehicle)throw new HttpsError('not-found','Supplier listing expired');
   const ref=db.doc(`supplier_photos/${vehicle.id}`),cached=(await ref.get()).data();
   // A cached detail of null records a failed attempt, so the gallery is not refetched for every viewer.
-  if(cached&&cached.listingUrl===vehicle.listingUrl&&Date.now()-cached.checkedAt<6*3600000&&Object.hasOwn(cached,'detail'))return {photos:cached.photos,detail:cached.detail??null,estimate:vehicle.estimate??null};
+  if(cached&&cached.listingUrl===vehicle.listingUrl&&Date.now()-cached.checkedAt<6*3600000&&Object.hasOwn(cached,'detail'))return {photos:cached.photos,detail:cached.detail??null,estimate:await estimateFor(vehicle,cached.detail??null)};
   // Only the stored supplier URL is fetched; callers cannot supply arbitrary URLs.
   const url=new URL(vehicle.listingUrl);
   if(url.protocol!=='https:'||url.hostname!=='www.beforward.jp'||url.username||url.password||url.port||url.search||url.hash||!/^\/[a-z0-9-]+\/[a-z0-9-]+\/[a-z]{2}\d+\/id\/\d+\/$/.test(url.pathname))throw new HttpsError('failed-precondition','Invalid stored supplier URL');
@@ -56,7 +63,7 @@ export const publicSupplierVehicle=onCall({timeoutSeconds:35,maxInstances:2},asy
     if(parsed.photos.length)photos=parsed.photos;
     if(Object.keys(parsed.detail).length)detail=parsed.detail;
   }catch{ /* The captured catalogue photo remains usable when the gallery is unavailable. */ }
-  await ref.set({photos,detail,listingUrl:vehicle.listingUrl,checkedAt:Date.now()});return {photos,detail,estimate:vehicle.estimate??null};
+  await ref.set({photos,detail,listingUrl:vehicle.listingUrl,checkedAt:Date.now()});return {photos,detail,estimate:await estimateFor(vehicle,detail)};
 });
 
 export function importDealerEligible(c:Record<string,any>) {

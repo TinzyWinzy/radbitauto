@@ -32,10 +32,24 @@ export function parseSupplierPhotos(html:string, reference:string):string[] {
 }
 export type SupplierDetailSpecs = {
   chassis?:string; engineCode?:string; colour?:string; drive?:string; seats?:number; doors?:number;
-  weightKg?:number; dimensions?:string; registration?:string; version?:string;
+  weightKg?:number; dimensions?:string; registration?:string; version?:string; body?:string;
 };
 export type SupplierDetail = { photos:string[]; detail:SupplierDetailSpecs };
 const clip=(s:string,n=60)=>s.slice(0,n);
+// The body type only appears in the detail page's breadcrumb trail, never in the spec table.
+const bodyLabel=(html:string):string|undefined=>{
+  for(const block of html.matchAll(/<script[^>]*application\/ld\+json[^>]*>([\s\S]*?)<\/script>/g)){
+    try{const data=JSON.parse(block[1]);
+      for(const entry of Array.isArray(data)?data:[data]){
+        const types=Array.isArray(entry?.['@type'])?entry['@type']:[entry?.['@type']];
+        if(!types.includes('BreadcrumbList'))continue;
+        for(const item of entry.itemListElement??[])
+          if(/veh_type=\d+/.test(String(item?.['@id']??''))&&item?.name)return String(item.name);
+      }
+    }catch{ /* Structured data that is not valid JSON is simply skipped. */ }
+  }
+  return undefined;
+};
 export function parseSupplierDetail(html:string, reference:string):SupplierDetail {
   const fields=new Map<string,string>();
   for(const cell of html.matchAll(/<th[^>]*>([\s\S]*?)<\/th>\s*<td[^>]*>([\s\S]*?)<\/td>/g)){
@@ -45,6 +59,7 @@ export function parseSupplierDetail(html:string, reference:string):SupplierDetai
   const pick=(...keys:string[]):string|undefined=>{for(const key of keys){const value=fields.get(key);if(value)return value;}return undefined;};
   const num=(value?:string):number|undefined=>{const n=Number((value??'').replace(/,/g,'').match(/\d+/)?.[0]);return Number.isFinite(n)&&n>0?n:undefined;};
   const rawDrive=pick('drive'),seats=num(pick('seats')),doors=num(pick('doors')),weight=num(pick('weight'));
+  const bodyRaw=bodyLabel(html),body=bodyRaw?plain(bodyRaw):undefined;
   const drive=rawDrive?/4\s*wheel|4wd|4 wd/i.test(rawDrive)?'4WD':/2\s*wheel|2wd|2 wd/i.test(rawDrive)?'2WD':clip(rawDrive,24):undefined;
   const detail:SupplierDetailSpecs={
     ...(pick('chassis no.','chassis')?{chassis:clip(pick('chassis no.','chassis')!)}:{}),
@@ -55,6 +70,7 @@ export function parseSupplierDetail(html:string, reference:string):SupplierDetai
     ...(pick('dimension')?{dimensions:clip(pick('dimension')!,40)}:{}),
     ...(pick('registration year/month','registration')?{registration:clip(pick('registration year/month','registration')!,20)}:{}),
     ...(pick('version/class','version')?{version:clip(pick('version/class','version')!)}:{}),
+    ...(body?{body:clip(body,24)}:{}),
   };
   return {photos:parseSupplierPhotos(html,reference),detail};
 }

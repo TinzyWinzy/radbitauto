@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { beforwardSeed } from '../../firebase/functions/src/beforwardSeed';
 const vehicle={...beforwardSeed[0],checkedAt:new Date().toISOString()};
-const estimate={lowCents:780000,highCents:960000,taxesCents:221400,dutyCents:140000,surtaxCents:60000,vatCents:19400,carbonTaxCents:600,outsideCents:[90000,160000],deliveryCents:[70000,160000],agencyFeeCents:40000,dutyPct:40,vatPct:15.5,surtaxPct:35,surtaxApplied:true,vehicleAgeYears:6,ageAssumed:false,tooOld:false,category:'sedan_station_wagon',categoryAssumed:true,asAt:'2026-10-09'};
+const estimate={lowCents:780000,highCents:960000,taxesCents:221400,dutyCents:140000,surtaxCents:60000,vatCents:19400,carbonTaxCents:600,outsideCents:[90000,160000],deliveryCents:[120000,250000],agencyFeeCents:[30000,75000],dutyPct:40,vatPct:15.5,surtaxPct:35,surtaxApplied:true,vehicleAgeYears:6,ageAssumed:false,tooOld:false,category:'sedan_station_wagon',categoryAssumed:false,body:'Hatchback',asAt:'2026-10-09'};
 test('buyer selects supplier vehicle and dealer; enquiry carries reference and remains inside Radbit',async({page})=>{
  await page.route('**/publicSupplierCatalogue',r=>r.fulfill({json:{result:{stock:[{...vehicle,estimate}],limited:true}}}));
  await page.route('**/publicVehicleCatalogue',r=>r.fulfill({json:{result:{stock:[],limited:false}}}));
@@ -41,7 +41,7 @@ test('supplier failures retry; expired cars and no eligible dealers have useful 
 test('import detail shows supplier specifications and a labelled landed-cost estimate',async({page})=>{
  await page.route('**/publicSupplierCatalogue',r=>r.fulfill({json:{result:{stock:[{...vehicle,estimate}],limited:true}}}));
  await page.route('**/publicImportDealers',r=>r.fulfill({json:{result:{dealers:[],nextCursor:null}}}));
- await page.route('**/publicSupplierVehicle',r=>r.fulfill({json:{result:{photos:vehicle.photos,detail:{chassis:'M700A-0160915',colour:'Silver',drive:'2WD',seats:5,doors:5,weightKg:910,registration:'2020/3',engineCode:'1KR'},estimate}}}));
+ await page.route('**/publicSupplierVehicle',r=>r.fulfill({json:{result:{photos:vehicle.photos,detail:{chassis:'M700A-0160915',colour:'Silver',drive:'2WD',seats:5,doors:5,weightKg:910,registration:'2020/3',engineCode:'1KR',body:'Hatchback'},estimate}}}));
  await page.goto('/imports');
  await expect(page.getByText('Est. landed in Zimbabwe: USD 7,800 - 9,600 (estimate)')).toBeVisible();
  await page.goto('/imports/'+vehicle.id);
@@ -50,8 +50,14 @@ test('import detail shows supplier specifications and a labelled landed-cost est
  await expect(panel).toContainText('Estimate, not a quote.');
  await expect(panel.getByText('Customs duty (40% of CIF)')).toBeVisible();
  await expect(panel.getByText('Surtax (35%, vehicle 6 years old)')).toBeVisible();
+ await expect(panel.getByText('Clearing, registration and dealer fee')).toBeVisible();
+ await expect(panel.getByText('USD 300 - 750')).toBeVisible();
+ await expect(panel.getByRole('note')).toHaveCount(0, 'a stated body type removes the assumed-rates warning');
  await expect(panel.getByText('How this is estimated')).toBeVisible();
+ await panel.getByText('How this is estimated').click();
+ await expect(panel.getByText(/Japan to Durban by RoRo: about USD 1,000-1,900/)).toBeVisible();
  const specs=page.locator('.supplier-detail-specs');
+ await expect(specs.getByText('Hatchback')).toBeVisible();
  await expect(specs.getByText('M700A-0160915')).toBeVisible();
  await expect(specs.getByText('Silver')).toBeVisible();
  await expect(specs.getByText('2020/3')).toBeVisible();
