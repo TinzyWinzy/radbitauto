@@ -110,7 +110,7 @@ export default function NewVehicle() {
         {!!photoUrls.length && <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">{photoUrls.map((url, index) => <img key={url} src={url} alt={`Registered vehicle photo ${index + 1}`} className="aspect-[4/3] w-full rounded-lg object-cover" />)}</div>}
         {remainingPhotos > 0 && !busy && <Button variant="ghost" onClick={async () => {setBusy(true);setError(null);try {await uploadPhotos(result.vehicleId);} catch (err) {setError((err as Error).message);} finally {setBusy(false);}}}>Retry remaining photos ({remainingPhotos})</Button>}
         <div className="space-y-3">
-          <Button disabled={busy || remainingPhotos > 0} onClick={() => navigate('/app/dealership')}>Add this vehicle to dealer stock</Button>
+          <Button disabled={busy || remainingPhotos > 0} onClick={() => navigate('/app/dealership?tab=stock')}>Add this vehicle to dealer stock</Button>
           <Button disabled={busy || remainingPhotos > 0} onClick={() => navigate('/app/new/case', { state: { vehicleId: result.vehicleId } })}>
             Create an import case for this vehicle
           </Button>

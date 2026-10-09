@@ -8,6 +8,7 @@ test('dealer captures a mobile lead and adds stock without importing for a retai
   await expect(page).toHaveURL(/\/app$/);
   await page.goto('/app/dealership');
   await expect(page.getByRole('heading',{name:'Dealership',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'+ New enquiry',exact:true}).click();
   const name = `Buyer ${uid()}`;
   await page.getByLabel('Customer name',{exact:true}).fill(name);
   await page.getByLabel('WhatsApp / phone').fill('+263771234567');
@@ -20,8 +21,10 @@ test('dealer captures a mobile lead and adds stock without importing for a retai
   await page.screenshot({path:'release-evidence/dealership-leads-mobile.png',fullPage:true});
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole('button',{name:'Stock',exact:true}).click();
+  await page.getByRole('button',{name:'+ Add stock',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Add a registered vehicle to stock'})).toBeVisible();
   await page.getByRole('button',{name:'Sales',exact:true}).click();
+  await page.getByRole('button',{name:'+ New reservation',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Reserve a vehicle'})).toBeVisible();
   await page.setViewportSize({width:1440,height:900});
   await page.screenshot({path:'release-evidence/dealership-sales-desktop.png',fullPage:true});
@@ -35,6 +38,7 @@ test('dealer captures a mobile lead and adds stock without importing for a retai
   await expect(page.getByRole('heading',{name:'Vehicle registered'})).toBeVisible();
   await page.getByRole('button',{name:'Add this vehicle to dealer stock'}).click();
   await page.getByRole('button',{name:'Stock',exact:true}).click();
+  await page.getByRole('button',{name:'+ Add stock',exact:true}).click();
   await page.getByLabel('Stock vehicle').selectOption({label:`2020 Toyota Aqua · ${chassis}`});
   await page.getByLabel('Vehicle location').fill('Harare');
   await page.locator('form').filter({has:page.getByLabel('Stock vehicle')}).getByLabel('Asking price (USD)').fill('8000');
@@ -67,6 +71,7 @@ test('dealer captures a mobile lead and adds stock without importing for a retai
   await expect(showroom.getByRole('status').filter({hasText:'Your enquiry has reached'})).toContainText('Your enquiry has reached');
   await showroom.screenshot({path:'release-evidence/dealership-showroom-desktop.png',fullPage:true});
   await page.getByRole('button',{name:'Sales',exact:true}).click();
+  await page.getByRole('button',{name:'+ New reservation',exact:true}).click();
   await page.getByLabel('Available vehicle').selectOption({label:'2020 Toyota Aqua · $8,000.00'});
   await page.getByLabel('Buyer',{exact:true}).selectOption({label:'Test Customer'});
   await page.getByLabel('Agreed price (USD)').fill('8000');
@@ -112,6 +117,7 @@ test('dealer captures a mobile lead and adds stock without importing for a retai
 
 test('enquiry converts into a customer import without entering the customer twice',async({page})=>{
   await page.setViewportSize({width:390,height:844});await loginAs(page,adminEmail);await expect(page).toHaveURL(/\/app$/);await page.goto('/app/dealership');
+  await page.getByRole('button',{name:'+ New enquiry',exact:true}).click();
   const name=`Import buyer ${uid()}`;await page.getByLabel('Customer name',{exact:true}).fill(name);await page.getByLabel('WhatsApp / phone').fill('+263771234569');await page.getByLabel('Looking for').selectOption('import');await page.getByRole('button',{name:'Save enquiry'}).click();
   const card=page.locator('.card').filter({has:page.getByRole('heading',{name,exact:true})});await expect(card).toBeVisible();await card.getByLabel(`Journey for ${name}`).selectOption('import');await card.getByRole('button',{name:'Continue enquiry'}).click();
   await expect(page.getByRole('heading',{name:'New import case',exact:true})).toBeVisible();await expect(page.locator('form select').first()).toContainText(name);await expect(page.locator('form select').first().locator('option:checked')).toContainText(name);

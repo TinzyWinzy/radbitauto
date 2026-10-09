@@ -13,7 +13,8 @@ import type { QuotationDoc } from '../lib/types';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebaseData';
 import { RetailPurchaseCards } from './RetailPurchase';
-import DealerOverview from '../components/DealerOverview';
+import DealerOverview, { type DealerWorkspace } from '../components/DealerOverview';
+import { dealerCall } from '../lib/dealer';
 
 function TrialBanner() {
   const [days, setDays] = useState<number | null>(null);
@@ -161,6 +162,14 @@ function StaffDashboard() {
   const [overview, setOverview] = useState<Awaited<ReturnType<typeof api.dashboardOverview>> | null>(null);
   const [overviewError, setOverviewError] = useState('');
   const [refresh, setRefresh] = useState(0);
+  const [dealer, setDealer] = useState<DealerWorkspace | undefined>();
+  const [dealerError, setDealerError] = useState('');
+  useEffect(() => {
+    let active = true;
+    if (!companyId) return;
+    dealerCall<DealerWorkspace>('dealershipWorkspace', {}).then(d => { if (active) { setDealer(d); setDealerError(''); } }).catch(err => { if (active) setDealerError(`Dealer activity unavailable: ${err?.message ?? 'try again shortly'}`); });
+    return () => { active = false; };
+  }, [companyId, refresh]);
   useEffect(() => {
     let active = true; setOverview(null); setOverviewError('');
     if (!companyId || loading) return;
@@ -218,7 +227,7 @@ function StaffDashboard() {
 
       {overviewError ? <ErrorState message={`Overview unavailable: ${overviewError}`} /> : null}
       {claims.appRole === 'admin' ? <TrialBanner /> : null}
-      <AgencyLaunchChecklist/><DealerOverview />
+      <AgencyLaunchChecklist workspace={dealer} workspaceError={dealerError} /><DealerOverview data={dealer} error={dealerError} />
       {!loading && cases.length > 0 ? <>
         <dl className="dashboard-totals"><div><dt>Active cases</dt><dd>{overview ? overview.activeCases : '…'}</dd></div><div><dt>Needs attention</dt><dd>{overview ? `${overview.attentionCount} ${overview.attentionCount === 1 ? 'action' : 'actions'}` : '…'}</dd></div><div><dt>Outstanding across cases</dt><dd>{overview ? <MoneyText cents={overview.outstandingCents} currency="USD" /> : '…'}</dd></div></dl>
         <section className="dashboard-section" aria-label="Agency attention queue"><div className="flex flex-wrap items-center justify-between gap-2"><h2>Needs your attention</h2><button className="text-sm text-slate-300 underline" onClick={() => setRefresh(value => value + 1)}>Refresh overview</button></div>{overview ? overview.tasks.length ? overview.tasks.map((task,index) => <article className="attention-row" key={`${task.kind}-${task.caseId}-${index}`}><div><h3>{task.title}</h3><p>{task.caseNum} · {task.detail}</p></div><Link className="btn-ghost" to={`/app/cases/${task.caseId}`}>{task.kind === 'payment' ? 'Review payment' : task.kind === 'document' ? 'Review document' : 'Open case'}</Link></article>) : <p className="text-sm text-slate-300">No quotations, pending payments or validated documents waiting for review.</p> : <p role="status" className="text-sm text-slate-300">Loading agency overview…</p>}<p className="interface-note mt-3">Totals cover the whole agency. Up to four actions of each type are shown.</p></section>

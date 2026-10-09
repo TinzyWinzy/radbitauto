@@ -49,6 +49,24 @@ export function TeamIcon({ className }: IconProps) {
   );
 }
 
+export function DealerIcon({ className }: IconProps) {
+  return (
+    <Base className={className}>
+      <path d="M4 15.5h16M5.5 15.5l1.6-5.1A2 2 0 0 1 9 9h6a2 2 0 0 1 1.9 1.4l1.6 5.1" />
+      <circle cx="8" cy="17.5" r="1.6" />
+      <circle cx="16" cy="17.5" r="1.6" />
+    </Base>
+  );
+}
+
+export function ReportsIcon({ className }: IconProps) {
+  return (
+    <Base className={className}>
+      <path d="M4 20h16M7.5 20v-6M12 20V7M16.5 20v-9" />
+    </Base>
+  );
+}
+
 export function AccountIcon({ className }: IconProps) {
   return (
     <Base className={className}>

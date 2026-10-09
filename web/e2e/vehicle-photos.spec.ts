@@ -25,6 +25,7 @@ test('registration compresses photos, retries attachment without creating anothe
   expect(creations).toBe(1);
   await page.getByRole('button',{name:'Add this vehicle to dealer stock'}).click();
   await page.getByRole('button',{name:'Stock',exact:true}).click();
+  await page.getByRole('button',{name:'+ Add stock',exact:true}).click();
   await page.getByLabel('Stock vehicle').selectOption({label:`2020 Toyota Aqua · ${chassis}`});
   const form=page.locator('form').filter({has:page.getByLabel('Stock vehicle')});
   await form.getByLabel('Vehicle location').fill('Harare');

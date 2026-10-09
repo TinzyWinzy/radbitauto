@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useCompanyDoc } from '../lib/hooks';
 import { useAuth } from '../lib/auth';
-import { AccountIcon, CasesIcon, NewIcon, TeamIcon } from '../components/icons';
+import { AccountIcon, CasesIcon, DealerIcon, ReportsIcon, TeamIcon } from '../components/icons';
 function toAccentVars(hex: string | undefined): CSSProperties {
   const h = (hex ?? '').trim().replace(/^#/, '');
   const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
@@ -11,7 +11,7 @@ function toAccentVars(hex: string | undefined): CSSProperties {
   return {'--accent-rgb':`${r} ${g} ${b}`,'--accent-ink-rgb':`${Math.round(r*.55)} ${Math.round(g*.55)} ${Math.round(b*.55)}`,'--accent-contrast-rgb':(r*299+g*587+b*114)/1000>165?'23 36 30':'255 255 255'} as CSSProperties;
 }
 const NAV=[{to:'/app',label:'My vehicles',icon:CasesIcon,end:true},{to:'/app/account',label:'Account',icon:AccountIcon,end:false}];
-const STAFF_NAV=[{to:'/app',label:'Overview',icon:CasesIcon,end:true},{to:'/app/dealership',label:'Dealer',icon:NewIcon,end:false},{to:'/app/team',label:'Team',icon:TeamIcon,end:false},{to:'/app/operations',label:'Reports',icon:CasesIcon,end:false},{to:'/app/account',label:'Settings',icon:AccountIcon,end:false}];
+const STAFF_NAV=[{to:'/app',label:'Overview',icon:CasesIcon,end:true},{to:'/app/dealership',label:'Dealership',icon:DealerIcon,end:false},{to:'/app/team',label:'Team',icon:TeamIcon,end:false},{to:'/app/operations',label:'Reports',icon:ReportsIcon,end:false},{to:'/app/account',label:'Settings',icon:AccountIcon,end:false}];
 export default function AppLayout(){
  const {user,claims}=useAuth();const isStaff=claims.appRole==='staff'||claims.appRole==='admin';const {data:company}=useCompanyDoc(claims.companyId);const nav=isStaff?STAFF_NAV:NAV;
  const subscription=company?.subscription;const expired=subscription?.version===1 && (!['trial','active'].includes(subscription.status??'') || !subscription.accessUntil || subscription.accessUntil.toMillis()<=Date.now());
