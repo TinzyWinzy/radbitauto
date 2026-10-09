@@ -12,6 +12,10 @@ const ORIGIN = `http://localhost:${PORT}`;
 const routes = [
   { route: '/', out: 'index.html', waitFor: 'main h1' },
   { route: '/help', out: 'help/index.html', waitFor: 'h1' },
+  // The import catalogue loads supplier stock through a public callable, so
+  // wait for that render to settle before capture; head/title/canonical are
+  // already correct as soon as the route mounts.
+  { route: '/imports', out: 'imports/index.html', waitFor: 'main h1', waitForGone: 'Loading BE FORWARD vehicles', settle: 10000 },
 ];
 
 async function waitForServer(timeoutMs = 30000) {
@@ -36,7 +40,15 @@ try {
     try {
       await page.goto(`${ORIGIN}${r.route}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
       await page.waitForSelector(r.waitFor, { timeout: 15000 });
-      await page.waitForTimeout(1500);
+      if (r.waitForGone) {
+        const deadline = Date.now() + (r.settle ?? 6000);
+        while (Date.now() < deadline) {
+          if ((await page.locator(`text=${r.waitForGone}`).count()) === 0) break;
+          await new Promise((resolve) => setTimeout(resolve, 250));
+        }
+      } else {
+        await page.waitForTimeout(r.settle ?? 1500);
+      }
     } catch (err) {
       console.warn(`Prerender warning for ${r.route}: ${err.message}`);
     }

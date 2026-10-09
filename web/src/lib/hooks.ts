@@ -9,7 +9,7 @@ import {
   query,
   where,
 } from 'firebase/firestore';
-import { db } from './firebase';
+import { db } from './firebaseData';
 import type {
   CompanyDoc,
   CompanySettingsDoc,
@@ -22,20 +22,7 @@ import type {
 } from './types';
 import type { StaffDoc } from './types';
 
-export function useOnline(): boolean {
-  const [online, setOnline] = useState(() => navigator.onLine);
-  useEffect(() => {
-    const on = () => setOnline(true);
-    const off = () => setOnline(false);
-    window.addEventListener('online', on);
-    window.addEventListener('offline', off);
-    return () => {
-      window.removeEventListener('online', on);
-      window.removeEventListener('offline', off);
-    };
-  }, []);
-  return online;
-}
+export { useOnline } from './online';
 
 function useLiveQuery<T>(q: Query | null): { data: T[]; loading: boolean; error: string | null } {
   const [data, setData] = useState<T[]>([]);

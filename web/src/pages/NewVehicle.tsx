@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { getMetadata, ref, uploadBytes } from 'firebase/storage';
-import { storage } from '../lib/firebase';
+import { storage } from '../lib/firebaseData';
 import { useAuth } from '../lib/auth';
 import { dealerCall } from '../lib/dealer';
 import { optimizeStockImage } from '../lib/stockImage';

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db } from '../lib/firebaseData';
 import { api } from '../lib/api';
 import { Button, Card, Field, Input } from './ui';
 

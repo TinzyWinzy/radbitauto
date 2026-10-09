@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ref, uploadBytes } from 'firebase/storage';
-import { storage } from '../lib/firebase';
+import { storage } from '../lib/firebaseData';
 import { dealerCall } from '../lib/dealer';
 import { Button } from './ui';
 import { optimizeStockImage } from '../lib/stockImage';

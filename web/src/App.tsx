@@ -5,8 +5,9 @@ import { OfflineBanner, Spinner } from './components/status';
 import { InstallBanner, UpdatePrompt } from './components/pwa';
 import Login from './pages/Login';
 import Landing from './pages/Landing';
-import Dashboard from './pages/Dashboard';
-import AppLayout from './pages/AppLayout';
+
+const AppLayout = lazy(() => import('./pages/AppLayout'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
 
 const Onboarding = lazy(() => import('./pages/Onboarding'));
 const Pending = lazy(() => import('./pages/Pending'));

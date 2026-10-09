@@ -5,7 +5,8 @@ import { collection, doc, serverTimestamp, setDoc, Timestamp, updateDoc } from '
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
-import { db, storage, auth } from '../lib/firebase';
+import { auth } from '../lib/firebase';
+import { db, storage } from '../lib/firebaseData';
 import {
   useCaseAudit,
   useCaseDetail,

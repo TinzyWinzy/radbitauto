@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db } from '../lib/firebaseData';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useCompanyDoc, useCustomers, useStaff, useUserNames } from '../lib/hooks';

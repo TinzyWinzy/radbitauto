@@ -11,7 +11,7 @@ import { EmptyState, ErrorState, PageHeader } from '../components/status';
 import type { SearchHit, VehicleDoc } from '../lib/types';
 import type { QuotationDoc } from '../lib/types';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db } from '../lib/firebaseData';
 import { RetailPurchaseCards } from './RetailPurchase';
 import DealerOverview from '../components/DealerOverview';
 

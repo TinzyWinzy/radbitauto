@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useOnline } from '../lib/hooks';
+import { useOnline } from '../lib/online';
 
 export function Spinner({ label = 'Loading' }: { label?: string }) {
   return (
