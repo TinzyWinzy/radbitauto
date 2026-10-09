@@ -11,11 +11,21 @@
     "predeploy": ["node functions/e2e/guard-rules.mjs", "npm --prefix functions run typecheck", "npm --prefix functions run build"]
   },
   "hosting": {
+    "site": "studio-285787437-bc95b",
     "public": ".hosting",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "predeploy": ["npm run build:hosting"],
     "rewrites": [
-      { "source": "**", "destination": "/index.html" },
+      { "source": "/login", "destination": "/index.html" },
+      { "source": "/onboarding", "destination": "/index.html" },
+      { "source": "/pending", "destination": "/index.html" },
+      { "source": "/agency/setup", "destination": "/index.html" },
+      { "source": "/imports", "destination": "/index.html" },
+      { "source": "/imports/**", "destination": "/index.html" },
+      { "source": "/showroom/**", "destination": "/index.html" },
+      { "source": "/invite/**", "destination": "/index.html" },
+      { "source": "/app", "destination": "/index.html" },
+      { "source": "/app/**", "destination": "/index.html" },
       { "source": "/__/**", "destination": "/index.html" }
     ],
     "headers": [

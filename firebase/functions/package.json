@@ -24,7 +24,5 @@
     "esbuild": "^0.25.12",
     "typescript": "^5.8.0"
   },
-  "overrides": {
-    "gaxios": "7.3.1"
-  }
+  "overrides": {}
 }

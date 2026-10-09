@@ -37,7 +37,7 @@ test('dealer captures a mobile lead and adds stock without importing for a retai
   await page.getByRole('button',{name:'Stock',exact:true}).click();
   await page.getByLabel('Stock vehicle').selectOption({label:`2020 Toyota Aqua · ${chassis}`});
   await page.getByLabel('Vehicle location').fill('Harare');
-  await page.getByLabel('Asking price (USD)').fill('8000');
+  await page.locator('form').filter({has:page.getByLabel('Stock vehicle')}).getByLabel('Asking price (USD)').fill('8000');
   await page.getByLabel('Acquisition / owner settlement cost (USD)').fill('5000');
   await page.getByLabel('Other direct costs (USD)').fill('1000');
   await page.getByRole('button',{name:'Add stock',exact:true}).click();

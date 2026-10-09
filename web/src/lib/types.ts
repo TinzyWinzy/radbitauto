@@ -9,6 +9,7 @@ export type VehicleCategory =
   | 'double_cab';
 
 export interface ImportCaseDoc {
+  supplierSelection?: {id:string;title:string;photos:string[];askingPriceCents:number;checkedAt:string};
   nextAction?: {title:string;responsible:string;dueDate:string;state:string};
   caseNum: string;
   companyId: string;

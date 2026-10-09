@@ -23,6 +23,7 @@ const Operations = lazy(() => import('./pages/Operations'));
 const Help = lazy(() => import('./pages/Help'));
 const Dealership = lazy(() => import('./pages/Dealership'));
 const Showroom = lazy(() => import('./pages/Showroom'));
+const ImportCatalogue = lazy(() => import('./pages/ImportCatalogue'));
 const RetailPurchase = lazy(() => import('./pages/RetailPurchase'));
 const DealerAcquisitions = lazy(() => import('./pages/DealerAcquisitions'));
 const Invitations = lazy(() => import('./pages/Invitations'));
@@ -84,6 +85,8 @@ export default function App() {
       <Routes>
         <Route path="/help" element={<Help />} />
         <Route path="/showroom/:slug" element={<Showroom />} />
+        <Route path="/imports" element={<ImportCatalogue />} />
+        <Route path="/imports/:vehicleId" element={<ImportCatalogue />} />
         <Route path="/showroom/:slug/vehicle/:stockId" element={<Showroom />} />
         <Route path="/invite/:token" element={<Invitation />} />
         <Route path="/agency/setup" element={<RequirePending><AgencySetup /></RequirePending>} />

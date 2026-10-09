@@ -126,7 +126,7 @@ export const api = {
   deactivateAccount: make<{ userId: string }, { userId: string; isActive: false }>('deactivateAccount'),
   createVehicle: make<CreateVehicleInput, { vehicleId: string }>('createVehicle'),
   createCase: make<
-    { customerId: string; vehicleId?: string; statusNote?: string },
+    { customerId: string; vehicleId?: string; statusNote?: string; supplierLeadId?:string },
     { caseId: string; caseNum: string; currentStage: string }
   >('createCase'),
   attachCaseVehicle: make<{ caseId: string; vehicleId: string }, { caseId: string; vehicleId: string }>('attachCaseVehicle'),

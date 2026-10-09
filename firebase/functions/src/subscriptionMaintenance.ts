@@ -20,6 +20,9 @@ export async function remindCompany(companyId: string, company: any, now = Date.
 }
 // Aggregate usage rather than customer content. These are usage measurements,
 // not a calculation of Firebase charges or a promise of an unlimited allowance.
+// This job must remain measurement/reminder-only: never retry financial actions here.
+// Notifications use deterministic IDs and daily measurements can be safely replaced;
+// financial records, subscription events and audit history are never changed.
 export const subscriptionMaintenance = onSchedule({schedule:'every day 08:00',timeZone:'Africa/Harare',timeoutSeconds:540,maxInstances:1},async()=>{
   let cursor:string|undefined;const day=new Date().toISOString().slice(0,10);
   do {

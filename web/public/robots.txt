@@ -7,4 +7,4 @@ Disallow: /agency/setup
 Disallow: /invite/
 Disallow: /login
 
-Sitemap: https://studio-285787437-bc95b.web.app/sitemap.xml
+Sitemap: https://auto.radbitstudios.co.zw/sitemap.xml

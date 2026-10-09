@@ -8,7 +8,7 @@ export {
   verifyDocument,
 } from './documents.ts';
 export { createVehicle } from './vehicles.ts';
-export { convertDealerLead, customerRetailPurchases, dealerSaleDetails, issueDealerSaleDocument, updateDealerStockDetails, createDealerAcquisition, updateDealerAcquisition, dealerAcquisitionDetails, attachDealerStockPhoto, recordImportDealResult, importDealResults } from './dealerJourneys.ts';
+export { convertDealerLead, customerRetailPurchases, dealerSaleDetails, issueDealerSaleDocument, updateDealerStockDetails, createDealerAcquisition, updateDealerAcquisition, dealerAcquisitionDetails, attachDealerStockPhoto, attachVehiclePhoto, recordImportDealResult, importDealResults } from './dealerJourneys.ts';
 export { dealershipWorkspace, saveDealerLead, addDealerStock, reserveDealerStock, updateDealerSale, publishDealerStock, dealerShowroom, enquireDealerShowroom, publicVehicleCatalogue } from './dealership.ts';
 export { bootstrapCompany, createStaff, linkCustomer, deactivateAccount, ensureBaseline } from './bootstrap.ts';
 export { claimPlatformAdmin, backfillVehicleCustomers } from './platform.ts';
@@ -27,3 +27,6 @@ export { subscriptionOverview, platformSubscriptionReport, requestSubscriptionPl
 export { subscriptionMaintenance, logAgencySupport, agencyUsageHistory } from './subscriptionMaintenance.ts';
 
 export { setCaseNextAction } from './journeyAction.ts';
+
+export { publicSupplierCatalogue, publicSupplierVehicle, publicImportDealers, enquireSupplierVehicle, verifySupplierLead, refreshSupplierCatalogue, supplierCatalogueMaintenance } from './supplierCatalogue.ts';
+

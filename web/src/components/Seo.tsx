@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-const SITE = 'https://studio-285787437-bc95b.web.app';
+const SITE = 'https://auto.radbitstudios.co.zw';
 
 export default function Seo({ title, description, path = '/', jsonLd }: { title: string; description: string; path?: string; jsonLd?: object }) {
   useEffect(() => {

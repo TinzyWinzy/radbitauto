@@ -8,18 +8,10 @@ import { db } from './db.ts';
 import { contextFrom, requireStaff, requireAdmin, requireActiveUser } from './claims.ts';
 import { ts } from './audits.ts';
 import { text, cents, id, owned } from './dealership.ts';
+import { retryClosedTransaction } from './transactionRetry.ts';
 
 const hash = (s:string) => createHash('sha256').update(s).digest('hex');
 const audit = (companyId:string,actorId:string,entityId:string,action:string,detail:object={}) => ({companyId,actorId,entityType:'dealer_journey',entityId,action,detail,createdAt:ts()});
-async function retryClosedTransaction<T>(work:()=>Promise<T>):Promise<T> {
-  // A stale Firestore read stream can outlive its transaction during contention.
-  // Recreate the entire transaction; the deterministic lead/customer link makes
-  // a successful commit safe to retry even if its response was interrupted.
-  for(let attempt=0;attempt<3;attempt++) {
-    try{return await work();}catch(error){const e=error as {code?:number;message?:string};if(attempt===2||e.code!==3||!e.message?.includes('Transaction is invalid or closed'))throw error;}
-  }
-  throw new HttpsError('aborted','Retry lead conversion');
-}
 export const convertDealerLead = onCall(async request => {
   const ctx = contextFrom(request); const staff = await requireStaff(ctx); const d = request.data;
   const leadRef = db.collection('dealer_leads').doc(id(d.leadId));
@@ -34,7 +26,7 @@ export const convertDealerLead = onCall(async request => {
     tx.update(leadRef,{customerId,status:'contacted',updatedAt:ts()});
     tx.create(db.collection('audit_log').doc(),audit(staff.companyId,ctx.uid,leadRef.id,'convert_lead',{customerId}));
     return {customerId};
-  }));
+  }),'Retry lead conversion');
 });
 
 async function saleAccess(request: CallableRequest, saleId:string) {
@@ -131,7 +123,7 @@ export const updateDealerAcquisition = onCall(async request => {
     } else if(d.action==='transfer') {
       const [stock,vehicle] = await Promise.all([tx.get(db.doc(`dealer_stock/${ref.id}`)),tx.get(db.doc(`vehicles/${ref.id}`))]);
       if(acq.stage!=='prepared'||stock.exists||vehicle.data()?.customerIds?.length||d.costsComplete!==true)throw new HttpsError('failed-precondition','Prepared acquisition and complete actual costs required');
-      tx.create(stock.ref,{companyId:staff.companyId,vehicleId:ref.id,title:acq.title,vin:vehicle.data()?.vinChassisUpper,ownership:'owned',status:'available',activeSaleId:null,location:text(d.location,'Location'),askingPriceCents:cents(d.askingPriceCents),acquisitionId:ref.id,createdAt:ts(),updatedAt:ts()});
+      tx.create(stock.ref,{companyId:staff.companyId,vehicleId:ref.id,title:acq.title,vin:vehicle.data()?.vinChassisUpper,ownership:'owned',photos:vehicle.data()?.photos??[],status:'available',activeSaleId:null,location:text(d.location,'Location'),askingPriceCents:cents(d.askingPriceCents),acquisitionId:ref.id,createdAt:ts(),updatedAt:ts()});
       tx.set(db.doc(`dealer_costs/${ref.id}`),{companyId:staff.companyId,acquisitionCents:acq.purchaseCents,directCostsCents:acq.directCostsCents,complete:true,acquisitionId:ref.id,updatedAt:ts()});
       tx.update(vehicle.ref,{allocation:'dealer_stock'});
       tx.update(ref,{stage:'stocked',costsComplete:true,updatedAt:ts()});tx.create(entryRef,{action:'transfer',amountCents:0,evidence,actorId:ctx.uid,createdAt:ts()});
@@ -156,6 +148,37 @@ export const attachDealerStockPhoto = onCall(async request => {
   await db.runTransaction(async tx=>{const ref=db.doc(`dealer_stock/${stockId}`);const stock=owned((await tx.get(ref)).data(),staff.companyId);const photos=stock.photos??[];if(photos.includes(url))return;if(photos.length>=8)throw new HttpsError('failed-precondition','Maximum eight photos');tx.update(ref,{photos:[...photos,url],updatedAt:ts()});});return {url};
 });
 
+// Registration photos use the same validated objects as dealership photos.
+// Keep photo IDs in the record so an attachment retry never adds a duplicate.
+export const attachVehiclePhoto = onCall(async request => {
+  const ctx=contextFrom(request);const staff=await requireStaff(ctx);
+  const vehicleId=id(request.data.vehicleId);const path=text(request.data.path,'Photo path');
+  if(!new RegExp(`^stock-photos/${staff.companyId}/${vehicleId}/[A-Za-z0-9_-]{10,100}$`).test(path))throw new HttpsError('invalid-argument','Invalid vehicle photo path');
+  const ref=db.doc(`vehicles/${vehicleId}`);
+  owned((await ref.get()).data(),staff.companyId);
+  const file=getStorage().bucket('studio-285787437-bc95b.firebasestorage.app').file(path);
+  const [metadata]=await file.getMetadata();
+  if(Number(metadata.size)>=5*1024*1024||!['image/jpeg','image/png','image/webp'].includes(metadata.contentType??''))throw new HttpsError('invalid-argument','Use a JPEG, PNG or WebP under 5 MB');
+  const [bytes]=await file.download({start:0,end:15});const mime=metadata.contentType;
+  if(!(mime==='image/jpeg'&&bytes[0]===255&&bytes[1]===216||mime==='image/png'&&bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))||mime==='image/webp'&&bytes.toString('ascii',0,4)==='RIFF'&&bytes.toString('ascii',8,12)==='WEBP'))throw new HttpsError('invalid-argument','Photo content does not match its type');
+  const token=String(metadata.metadata?.firebaseStorageDownloadTokens??'').split(',')[0]||randomUUID();
+  await file.setMetadata({metadata:{firebaseStorageDownloadTokens:token}});
+  const host=process.env.STORAGE_EMULATOR_HOST?`http://${process.env.STORAGE_EMULATOR_HOST.replace(/^https?:\/\//,'')}`:'https://firebasestorage.googleapis.com';
+  const url=`${host}/v0/b/${file.bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${token}`;
+  await db.runTransaction(async tx=>{
+    await transactionWriteCheck(tx,staff.companyId);
+    const vehicle=owned((await tx.get(ref)).data(),staff.companyId);
+    const stockRef=db.doc(`dealer_stock/${vehicleId}`);const stock=await tx.get(stockRef);
+    if(stock.exists)owned(stock.data(),staff.companyId);
+    if((vehicle.photoPaths??[]).includes(path))return;
+    if((vehicle.photos??[]).length>=8||stock.exists&&(stock.data()!.photos??[]).length>=8)throw new HttpsError('failed-precondition','Maximum eight photos');
+    tx.update(ref,{photos:[...(vehicle.photos??[]),url],photoPaths:[...(vehicle.photoPaths??[]),path]});
+    if(stock.exists)tx.update(stockRef,{photos:[...(stock.data()!.photos??[]),url],updatedAt:ts()});
+    tx.create(db.collection('audit_log').doc(),{companyId:staff.companyId,actorId:ctx.uid,entityType:'vehicles',entityId:vehicleId,action:'attach_photo',detail:{path},createdAt:ts()});
+  });
+  return {url};
+});
+
 export const recordImportDealResult = onCall(async request=>{
   const ctx=contextFrom(request);const staff=await requireAdmin(ctx);const d=request.data;const caseId=id(d.caseId);const ref=db.doc(`import_deal_results/${hash(`${staff.companyId}|${id(d.requestId)}`)}`);
   await db.runTransaction(async tx=>{
@@ -177,3 +200,4 @@ export const importDealResults = onCall(async request=>{
   const staff=await requireAdmin(contextFrom(request), true);const [cases,events]=await Promise.all([db.collection('import_cases').where('companyId','==',staff.companyId).get(),db.collection('import_deal_results').where('companyId','==',staff.companyId).get()]);
   return {cases:cases.docs.map(c=>({id:c.id,caseNum:c.data().caseNum,stage:c.data().currentStage})),events:events.docs.map(e=>({id:e.id,...e.data()}))};
 });
+

@@ -3,6 +3,7 @@ import { loginAs, customerEmail } from './accounts';
 
 test('landing renders hero and routes to login', async ({ page }) => {
   await page.goto('/');
+  await page.getByRole('button',{name:'Local dealer stock',exact:true}).click();
   await expect(page.getByRole('heading', { name: /Find your next car/ })).toBeVisible();
   await page.screenshot({ path: 'test-results/landing-desktop.png', fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
@@ -16,10 +17,11 @@ test('landing renders hero and routes to login', async ({ page }) => {
 test('buyers filter published cars and reach the owning dealer; agencies have their own signup path', async ({ page }) => {
   await page.route('**/publicVehicleCatalogue', route=>route.fulfill({json:{result:{limited:false,stock:[{id:'aqua',title:'Toyota Aqua',location:'Harare',askingPriceCents:700000,photos:[],dealerName:'Test Motors',slug:'test-motors'},{id:'hilux',title:'Toyota Hilux',location:'Bulawayo',askingPriceCents:2200000,photos:[],dealerName:'Other Motors',slug:'other-motors'}]}}}));
   await page.goto('/');
+  await page.getByRole('button',{name:'Local dealer stock',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Toyota Aqua',exact:true})).toBeVisible();
   await page.getByLabel('Maximum budget (USD)').selectOption('10000');
   await expect(page.getByRole('heading',{name:'Toyota Hilux',exact:true})).toHaveCount(0);
-  await expect(page.getByRole('link',{name:/View dealer & enquire about Toyota Aqua/})).toHaveAttribute('href','/showroom/test-motors');
+  await expect(page.getByRole('link',{name:'View vehicle & enquire about Toyota Aqua'})).toHaveAttribute('href','/showroom/test-motors/vehicle/aqua');
   await page.getByLabel('Make, model, location or dealer').fill('Mazda');
   await expect(page.getByRole('heading',{name:'No cars match those filters.'})).toBeVisible();
   await page.getByRole('button',{name:'Clear filters'}).click();
@@ -37,6 +39,7 @@ test('public catalogue failure can be retried and an empty market has honest gui
   let recovered=false;
   await page.route('**/publicVehicleCatalogue',route=>route.fulfill({json:!recovered?{error:{status:'UNAVAILABLE',message:'Unavailable'}}:{result:{stock:[],limited:false}}}));
   await page.goto('/');
+  await page.getByRole('button',{name:'Local dealer stock',exact:true}).click();
   await expect(page.getByRole('button',{name:'Try again'})).toBeVisible();
   recovered=true;
   await page.getByRole('button',{name:'Try again'}).click();
@@ -48,4 +51,5 @@ test('landing redirects signed-in users to the app', async ({ page }) => {
   await expect(page).toHaveURL(/\/app$/);
   await page.goto('/');
   await expect(page).toHaveURL(/\/app$/);
+  await expect(page.getByRole('button', { name: 'Local dealer stock', exact: true })).toHaveCount(0);
 });

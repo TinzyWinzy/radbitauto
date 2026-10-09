@@ -153,3 +153,11 @@
  .automotive-landing .marketing-actions a { width: 100%; }
  .art-topline span:last-child { display: none; }
 }
+.supplier-detail { margin-top: 2rem; }
+.supplier-detail > div { min-width: 0; }
+.supplier-detail .vehicle-main-photo { aspect-ratio: 4 / 3; object-fit: contain; background: #f4f1e9; }
+.supplier-detail .vehicle-thumbnails { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 8px; }
+.supplier-detail .vehicle-thumbnails button { flex-shrink: 0; }
+.supplier-enquiry { margin-top: 3rem; padding-top: 2rem; border-top: 1px solid #d8d4c9; }
+.supplier-lead { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #d8d4c9; }
+.supplier-lead > img { width: 100%; max-width: 320px; aspect-ratio: 4 / 3; object-fit: contain; background: #f4f1e9; }

@@ -180,6 +180,7 @@ export default function CaseDetail() {
         <p className="mt-1 text-[10px] uppercase tracking-wide text-slate-600">Last updated {dateTime(caseDoc.updatedAt)}</p>
       </section>
 
+       {caseDoc.supplierSelection&&<Card className="mb-3"><h2 className="section-title">Your selected import vehicle</h2><div className="grid gap-4 sm:grid-cols-2"><img className="w-full aspect-[4/3] object-contain" src={caseDoc.supplierSelection.photos[0]} alt={caseDoc.supplierSelection.title} referrerPolicy="no-referrer"/><div><h3>{caseDoc.supplierSelection.title}</h3><p>BE FORWARD reference: {caseDoc.supplierSelection.id}</p><p>Supplier vehicle price when selected: USD {(caseDoc.supplierSelection.askingPriceCents/100).toLocaleString()}</p><p className="text-sm">See your dealer’s quotation for agreed import costs and inclusions.</p></div></div></Card>}
        {isStaff ? <CaseSupplier key={caseDoc.id} caseId={caseDoc.id} /> : null}
        {isStaff && customer?.phoneNumber ? <a className="btn-ghost mb-3 inline-flex" target="_blank" rel="noopener noreferrer" href={whatsappLink(customer.phoneNumber, `Hello ${customer.fullName}, update from ${company?.name ?? 'your agency'}: case ${caseDoc.caseNum} is at ${stageLabel(stage)}. View your case: ${window.location.origin}/app/cases/${caseDoc.id} . Sign in with your linked customer account.`)}>Send customer a WhatsApp update</a> : null}
        {currentQuote ? <QuotationSummary quote={currentQuote} currency={currency} /> : null}

@@ -21,6 +21,9 @@ export function id(value: unknown): string {
   if (!/^[A-Za-z0-9_-]{1,100}$/.test(result)) throw new HttpsError('invalid-argument', 'Invalid record');
   return result;
 }
+export function leadRef(docId: string): string {
+  return docId.slice(0, 8).toUpperCase();
+}
 export function owned(data: FirebaseFirestore.DocumentData | undefined, companyId: string) {
   if (!data || data.companyId !== companyId) throw new HttpsError('not-found', 'Record unavailable');
   return data;
@@ -78,7 +81,7 @@ export const addDealerStock = onCall(async request => {
     if (acquisition.exists) throw new HttpsError('failed-precondition','Transfer this acquisition from its preparation stage');
     const lock = await capacityCheck(tx, staff.companyId, { vehicleKey: `vehicle:${vehicleId}` }); lock();
     tx.set(ref, { companyId: staff.companyId, vehicleId, title: `${v.year} ${v.make} ${v.model}`, vin: v.vinChassisUpper,
-      askingPriceCents, ownership, location: text(d.location, 'Location'), status: 'available', activeSaleId: null, createdAt: ts(), updatedAt: ts() });
+      askingPriceCents, ownership, photos: v.photos ?? [], location: text(d.location, 'Location'), status: 'available', activeSaleId: null, createdAt: ts(), updatedAt: ts() });
     tx.update(vehicle.ref,{allocation:'dealer_stock'});
     tx.set(db.collection('dealer_costs').doc(vehicleId), { companyId: staff.companyId, acquisitionCents: cents(d.acquisitionCents), directCostsCents: cents(d.directCostsCents ?? 0), complete: d.costsComplete === true, updatedAt: ts() });
     tx.set(db.collection('audit_log').doc(), { companyId: staff.companyId, actorId: ctx.uid, entityType: 'dealer_stock', entityId: vehicleId, action: 'create', createdAt: ts() });

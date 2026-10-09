@@ -87,7 +87,7 @@ test('platform controls fit a narrow phone', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 900 });
   await loginAs(page, platformEmail);
   await expect(page).toHaveURL(/\/onboarding$/);
-  await expect(page.getByText('view tenant as')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Agency administration' })).toBeVisible();
   await checkLayout(page);
   await page.screenshot({ path: 'test-results/responsive-platform-320.png', fullPage: true });
 });

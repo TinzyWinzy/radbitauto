@@ -34,8 +34,11 @@ test('email throttling is visible and retry and alternative sign-in remain avail
   await page.getByRole('link', { name: /I run an agency/ }).click();
   await expect(page.getByRole('alert')).toContainText('temporarily limited');
   await expect(page.getByRole('button', { name: 'Send verification email', exact: true })).toBeEnabled();
+  // Signup first visits Pending, which can also request verification. Measure
+  // this explicit retry rather than assuming one request across both screens.
+  const attemptsBeforeRetry = attempts;
   await page.getByRole('button', { name: 'Send verification email', exact: true }).click();
-  expect(attempts).toBe(2);
+  await expect.poll(() => attempts).toBe(attemptsBeforeRetry + 1);
   await page.getByRole('button', { name: 'Use Google or another account' }).click();
   await expect(page).toHaveURL(/\/login\?intent=agency$/);
   await expect(page.getByRole('button', { name: 'Sign in with Google' })).toBeVisible();

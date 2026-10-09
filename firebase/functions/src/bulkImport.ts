@@ -6,6 +6,7 @@ import { contextFrom,requireAdmin } from './claims.ts';
 import { db } from './db.ts';
 import { ts } from './audits.ts';
 import { normalizeVehicleIdentifier } from './vehicleIdentifier.ts';
+import { retryClosedTransaction } from './transactionRetry.ts';
 import { VEHICLE_CATEGORIES } from './constants.ts';
 const hash=(s:string,algorithm='sha256')=>createHash(algorithm).update(s).digest('hex');
 const text=(v:unknown,field:string,max=150)=>{if(typeof v!=='string'||!v.trim()||v.trim().length>max)throw new Error(`${field} is required (maximum ${max} characters)`);return v.trim();};
@@ -40,15 +41,15 @@ export const bulkImportRecords=onCall({timeoutSeconds:300},async request=>{
    }
    if(seen.has(key)){results.push({rowNumber,status:'duplicate',message:'Repeated row in this file'});continue;}seen.add(key);
    const ref=db.doc(`${kind==='customers'?'customers':'vehicles'}/${key}`);
-   const status=await db.runTransaction(async txn=>{
-    await transactionWriteCheck(txn, owner.companyId);
-    const found=await txn.get(ref);if(found.exists)return 'duplicate';
-    const lock = !customer ? await capacityCheck(txn, owner.companyId, { vehicleKey: `vehicle:${key}` }) : null;
-    if(mode==='preview')return 'ready';
-    lock?.();
-    if(customer)txn.create(ref,customer);else{txn.create(ref,vehicle!);txn.create(db.doc(`dealer_stock/${key}`),stock!);txn.create(db.doc(`dealer_costs/${key}`),cost!);}
-    txn.create(db.collection('audit_log').doc(),{companyId:owner.companyId,actorId:ctx.uid,entityType:kind,entityId:key,action:'bulk_import',detail:{rowNumber},createdAt:ts()});return 'imported';
-   });
+    const status=await retryClosedTransaction(()=>db.runTransaction(async txn=>{
+     await transactionWriteCheck(txn, owner.companyId);
+     const found=await txn.get(ref);if(found.exists)return 'duplicate';
+     const lock = !customer ? await capacityCheck(txn, owner.companyId, { vehicleKey: `vehicle:${key}` }) : null;
+     if(mode==='preview')return 'ready';
+     lock?.();
+     if(customer)txn.create(ref,customer);else{txn.create(ref,vehicle!);txn.create(db.doc(`dealer_stock/${key}`),stock!);txn.create(db.doc(`dealer_costs/${key}`),cost!);}
+     txn.create(db.collection('audit_log').doc(),{companyId:owner.companyId,actorId:ctx.uid,entityType:kind,entityId:key,action:'bulk_import',detail:{rowNumber},createdAt:ts()});return 'imported';
+    }),'This import row was interrupted by a concurrent write. Try it again.');
    const summary=customer?`${customer.fullName} · ${customer.phoneNumber}`:`${stock!.title} · ${stock!.vin} · USD ${(Number(stock!.askingPriceCents)/100).toFixed(2)} · ${stock!.location} · ${stock!.ownership} · Acquisition/settlement: ${cost!.acquisitionCents===null?'not recorded':`USD ${(Number(cost!.acquisitionCents)/100).toFixed(2)}`} · Direct costs: ${cost!.directCostsCents===null?'not recorded':`USD ${(Number(cost!.directCostsCents)/100).toFixed(2)}`} · Costs complete: ${cost!.complete?'yes':'no'}`;
    results.push({rowNumber,status,recordId:key,summary,message:status==='duplicate'?'Record already exists; existing data kept':kind==='stock'&&cost?.acquisitionCents===null?'Acquisition/settlement cost not recorded':kind==='stock'&&cost?.directCostsCents===null?'Direct costs not recorded':''});
   }catch(e){results.push({rowNumber,status:'error',message:(e as Error).message});}

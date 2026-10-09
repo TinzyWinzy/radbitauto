@@ -10,9 +10,9 @@
 
 ## Pages
 
-- [Homepage](https://studio-285787437-bc95b.web.app/): browse published dealer stock, import requests, pricing and dealer onboarding.
-- [Help and privacy](https://studio-285787437-bc95b.web.app/help): support contact, data handling, retention and service terms.
-- Dealer showrooms: https://studio-285787437-bc95b.web.app/showroom/{dealer-slug}
+- [Homepage](https://auto.radbitstudios.co.zw/): browse published dealer stock, import requests, pricing and dealer onboarding.
+- [Help and privacy](https://auto.radbitstudios.co.zw/help): support contact, data handling, retention and service terms.
+- Dealer showrooms: https://auto.radbitstudios.co.zw/showroom/{dealer-slug}
 
 ## Contact
 

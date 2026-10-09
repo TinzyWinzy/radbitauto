@@ -62,7 +62,8 @@ service firebase.storage {
     match /stock-photos/{companyId}/{stockId}/{photoId} {
       allow read: if isStaff() && sameCompany(companyId);
       allow create: if subscriptionWritable() && isStaff() && sameCompany(companyId)
-        && firestore.get(/databases/(default)/documents/dealer_stock/$(stockId)).data.companyId == companyId
+        && (firestore.get(/databases/(default)/documents/vehicles/$(stockId)).data.companyId == companyId
+          || firestore.get(/databases/(default)/documents/dealer_stock/$(stockId)).data.companyId == companyId)
         && photoId.matches('[A-Za-z0-9_-]{10,100}')
         && request.resource.contentType in ['image/jpeg','image/png','image/webp']
         && sizeOk(5 * 1024 * 1024);

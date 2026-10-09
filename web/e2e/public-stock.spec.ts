@@ -5,14 +5,14 @@ test('buyers filter, save, compare and enquire about the selected vehicle',async
  await page.route('**/publicVehicleCatalogue',r=>r.fulfill({json:{result:{stock,limited:false}}}));
  await page.route('**/dealerShowroom',r=>r.fulfill({json:{result:{name:'Test Motors',whatsapp:'+263771234567',acceptsEnquiries:true,stock:stock.map(s=>({...s,description:'Available for viewing. Confirm condition with dealer.'}))}}}));
  await page.route('**/enquireDealerShowroom',r=>{enquiry=r.request().postDataJSON().data;return r.fulfill({json:{result:{received:true}}});});
- await page.setViewportSize({width:390,height:900});await page.goto('/');
+ await page.setViewportSize({width:390,height:900});await page.goto('/');await page.getByRole('button',{name:'Local dealer stock',exact:true}).click();
  await page.getByRole('heading',{name:'2020 Toyota Aqua',exact:true}).waitFor();
  await page.getByText('More filters & sort',{exact:true}).click();
  await page.getByLabel('Fuel',{exact:true}).selectOption('Hybrid');
  await expect(page.getByRole('heading',{name:'2018 Isuzu Pickup',exact:true})).toHaveCount(0);
  await page.getByRole('button',{name:'Shortlist 2020 Toyota Aqua'}).click();
  await expect(page.getByRole('region',{name:'Saved vehicle comparison'})).toContainText('45,000 km');
- await page.reload();await expect(page.getByRole('region',{name:'Saved vehicle comparison'})).toContainText('2020 Toyota Aqua');
+ await page.reload();await page.getByRole('button',{name:'Local dealer stock',exact:true}).click();await expect(page.getByRole('region',{name:'Saved vehicle comparison'})).toContainText('2020 Toyota Aqua');
  await page.getByRole('link',{name:'View vehicle & enquire about 2020 Toyota Aqua'}).click();
  await expect(page).toHaveURL(/\/showroom\/test-motors\/vehicle\/aqua$/);
  await expect(page.getByText('Stock reference: aqua')).toBeVisible();
