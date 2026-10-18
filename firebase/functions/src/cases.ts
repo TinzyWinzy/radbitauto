@@ -191,7 +191,7 @@ async function validateStageGuards(
   await japanEaaGuard(caseDoc, toStage, reader);
 }
 
-export const createCase = onCall<{ customerId: string; vehicleId?: string; statusNote?: string; supplierLeadId?:string }>(
+export const createCase = onCall<{ customerId: string; vehicleId?: string; statusNote?: string; supplierLeadId?:string; enquiryLeadId?:string }>(
   async (request) => {
     const ctx = contextFrom(request);
     const staff = await requireStaff(ctx);
@@ -244,12 +244,13 @@ export const createCase = onCall<{ customerId: string; vehicleId?: string; statu
       if (dealerStock?.exists) throw new HttpsError('failed-precondition', 'Dealer stock uses the retail sale workflow; it cannot be assigned to a customer import');
       const counterSnap = await txn.get(counterRef);
       const caseSnap = await txn.get(caseRef);
-      const supplierLeadId=request.data.supplierLeadId;
+      if(request.data.supplierLeadId&&request.data.enquiryLeadId&&request.data.supplierLeadId!==request.data.enquiryLeadId)throw new HttpsError('invalid-argument','Choose one enquiry');
+      const supplierLeadId=request.data.enquiryLeadId??request.data.supplierLeadId;
       if(supplierLeadId!=null&&(typeof supplierLeadId!=='string'||!/^[A-Za-z0-9_-]{1,100}$/.test(supplierLeadId)))throw new HttpsError('invalid-argument','Invalid supplier enquiry');
       const supplierLead=supplierLeadId?await txn.get(db.doc(`dealer_leads/${supplierLeadId}`)):null;
       const sourcing=supplierLead?.data();
-      if(supplierLeadId&&(!sourcing||sourcing.companyId!==staff.companyId||sourcing.customerId!==customerId||!sourcing.supplierVehicle))throw new HttpsError('permission-denied','Supplier enquiry does not belong to this customer');
-      if(sourcing&&(sourcing.supplierVerification?.status!=='available'||!Number.isFinite(Date.parse(sourcing.supplierVerification.verifiedAt))||Date.now()-Date.parse(sourcing.supplierVerification.verifiedAt)>86400000))throw new HttpsError('failed-precondition','Confirm supplier availability within the last 24 hours before starting this import');
+      if(supplierLeadId&&(!sourcing||sourcing.companyId!==staff.companyId||sourcing.customerId!==customerId||(request.data.supplierLeadId&&!sourcing.supplierVehicle)))throw new HttpsError('permission-denied','Supplier enquiry does not belong to this customer');
+      if(sourcing?.supplierVehicle&&(sourcing.supplierVerification?.status!=='available'||!Number.isFinite(Date.parse(sourcing.supplierVerification.verifiedAt))||Date.now()-Date.parse(sourcing.supplierVerification.verifiedAt)>86400000))throw new HttpsError('failed-precondition','Confirm supplier availability within the last 24 hours before starting this import');
       if(sourcing?.importCaseId)throw new HttpsError('already-exists','This enquiry already has an import case');
       const currentStages = await tenantStages(staff.companyId, txn);
       const currentFirstStage = currentStages.find((stage) => stage.enabled);
@@ -291,8 +292,11 @@ export const createCase = onCall<{ customerId: string; vehicleId?: string; statu
       const lock = await capacityCheck(txn, staff.companyId, { vehicleKey: vehicleId ? `vehicle:${vehicleId}` : `case:${caseId}` }); lock();
       txn.set(caseRef, caseDoc);
       if(sourcing&&supplierLead){
+        if(sourcing.quotation)txn.set(caseRef,{enquiryQuotation:sourcing.quotation,enquiryLeadId:supplierLead.id},{merge:true});
+        if(sourcing.supplierVehicle){
         txn.set(caseRef.collection('supplier').doc('details'),{companyId:staff.companyId,supplierName:'BE FORWARD',stockReference:sourcing.supplierVehicle.id,listingUrl:sourcing.supplierVehicle.listingUrl,purchaseReference:'',updatedAt:now});
         txn.set(caseRef,{supplierSelection:sourcing.supplierVehicle,supplierVerification:sourcing.supplierVerification},{merge:true});
+        }
         txn.update(supplierLead.ref,{importCaseId:caseId,status:'won',updatedAt:now});
       }
       txn.set(counterRef, { lastSeq });

@@ -7,6 +7,7 @@ import { auth } from '../lib/firebase';
 import { api } from '../lib/api';
 import { Button, Field, Input, Select } from '../components/ui';
 import CommercialControls from '../components/CommercialControls';
+import SupplierCatalogueHealth from '../components/SupplierCatalogueHealth';
 import { PAYMENT_METHODS } from '../lib/types';
 
 export default function Onboarding() {
@@ -223,6 +224,6 @@ export default function Onboarding() {
             Create agency
           </Button>
         </form>
-      </section><aside className="setup-preview"><h2 className="my-5 font-semibold">Subscription and access</h2><CommercialControls/></aside></div></main>
+      </section><aside className="setup-preview"><h2 className="my-5 font-semibold">Subscription and access</h2><SupplierCatalogueHealth/><CommercialControls/></aside></div></main>
   );
 }

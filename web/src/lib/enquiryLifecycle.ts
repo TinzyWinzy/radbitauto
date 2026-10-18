@@ -1,0 +1,8 @@
+export const enquiryChargeLabels={vehicle:'Vehicle price',shipping:'Shipping',insurance:'Insurance',duties:'Duties and taxes',clearing:'Clearing',delivery:'Delivery',dealerFee:'Dealer fee'} as const;
+export type EnquiryQuote={id:string;version:number;currency:'USD';charges:Record<keyof typeof enquiryChargeLabels,number>;totalCents:number;validUntil:string;expiresAt:number;route:string;inclusions:string;exclusions:string;taxBasis:string;taxStatus:'estimate'|'confirmed';issuedAt:string;expired?:boolean};
+export type LeadAction={title:string;responsible:string;dueDate:string;state:string};
+export type Reminder={title:string;responsible?:string;dueDate:string;overdue:boolean;dueToday:boolean;closed:boolean};
+export const usd=(cents:number)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(cents/100);
+export function inputCents(value:FormDataEntryValue|null){const raw=String(value||'0');if(!/^\d+(\.\d{1,2})?$/.test(raw))throw Error('Enter USD amounts with at most two decimal places.');const n=Math.round(Number(raw)*100);if(!Number.isSafeInteger(n)||n<0||n>10000000000)throw Error('Amount is out of range');return n;}
+export function browserTrackingToken(requestId:string){const key=`radbit:enquiry-token:${requestId}`;try{const saved=sessionStorage.getItem(key);if(saved&&/^[a-f0-9]{64}$/.test(saved))return saved;}catch{/* Storage may be unavailable. */}const token=Array.from(crypto.getRandomValues(new Uint8Array(32)),n=>n.toString(16).padStart(2,'0')).join('');try{sessionStorage.setItem(key,token);}catch{/* Link is still returned in the success state. */}return token;}
+export const enquiryTrackingUrl=(token:string)=>`${window.location.origin}/enquiry#${token}`;

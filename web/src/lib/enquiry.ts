@@ -1,8 +1,8 @@
 const key = 'radbit:auto:import-enquiry:v1';
 
-export type OpenEnquiry = { ref: string; vehicleId: string; title: string; dealerName: string; dealerSlug: string; dealerWhatsapp: string; url: string; at: number };
+export type OpenEnquiry = { ref: string; vehicleId: string; title: string; dealerName: string; dealerSlug: string; dealerWhatsapp: string; url: string; trackingUrl?:string; at: number };
 
-export type EnquiryRequest = { ref: string; dealerName: string; buyerName: string; phone: string; budget: string; vehicleTitle: string; supplierId: string; supplierPrice: string; location: string; listingUrl: string; pageUrl: string; notes: string; landedEstimate?: string };
+export type EnquiryRequest = { ref: string; dealerName: string; buyerName: string; phone: string; budget: string; vehicleTitle: string; supplierId: string; supplierPrice: string; location: string; listingUrl: string; pageUrl: string; notes: string; trackingUrl?:string; landedEstimate?: string };
 
 export function leadRef(docId: string): string {
   return docId.slice(0, 8).toUpperCase();
@@ -49,6 +49,7 @@ export function enquiryRequestText(r: EnquiryRequest): string {
     ...(r.notes ? ['', 'NOTES', r.notes] : []),
     '',
     `Continue this enquiry: ${r.pageUrl}`,
+    ...(r.trackingUrl?[`Private progress and quotation: ${r.trackingUrl}`]:[]),
     'This request does not reserve a vehicle and does not collect payment.'
   ];
   return lines.join('\n');

@@ -27,6 +27,10 @@ export function parseBeforward(html:string, checkedAt = new Date().toISOString()
   return [...vehicles.values()];
 }
 export const freshSupplierVehicle = (v:SupplierVehicle, now=Date.now()) => Number.isFinite(Date.parse(v.checkedAt)) && now-Date.parse(v.checkedAt)<=48*3600000 && Date.parse(v.checkedAt)<=now+60000;
+// Freshness describes confidence, not whether buyers may browse and request verification.
+export function availableSupplierSelection(stock:SupplierVehicle[]|undefined, fallback:SupplierVehicle[]) {
+  return stock?.length ? stock : fallback;
+}
 export function parseSupplierPhotos(html:string, reference:string):string[] {
   return [...new Set([...html.matchAll(/data-path="((?:https:)?\/\/image-cdn\.beforward\.jp\/large\/[^"<>]+)"/g)].map(m=>m[1].startsWith('//')?`https:${m[1]}`:m[1]).filter(src=>new URL(src).pathname.split('/').at(-1)?.toUpperCase().startsWith(`${reference.toUpperCase()}_`)))].slice(0,20);
 }
@@ -74,22 +78,33 @@ export function parseSupplierDetail(html:string, reference:string):SupplierDetai
   };
   return {photos:parseSupplierPhotos(html,reference),detail};
 }
-export async function fetchBeforwardSelection():Promise<SupplierVehicle[]> {
-  const vehicles=new Map<string,SupplierVehicle>();
-  for(const make of [1,3,2,4,7]) {
+export async function fetchBeforwardSelection(fetcher:typeof fetch=fetch):Promise<SupplierVehicle[]> {
+  const groups=await Promise.all([1,3,2,4,7].map(async make=>{
+    const vehicles=new Map<string,SupplierVehicle>();
     for(const page of [1,2]) {
       const url=new URL(`https://www.beforward.jp/stocklist/make=${make}/${page>1?`page=${page}/`:''}sortkey=n`);
-      const response=await fetch(url,{redirect:'error',signal:AbortSignal.timeout(15000),headers:{'Accept':'text/html','Cookie':'currency=USD'}});
-      if(!response.ok){if(page===1)throw new Error(`BE FORWARD returned ${response.status}`);break;}
-      const html=await response.text();if(html.length>5000000)throw new Error('Supplier response exceeds limit');
-      const parsed=parseBeforward(html);if(!parsed.length){if(page===1)throw new Error('Supplier markup changed; previous snapshot retained');break;}
-      const size=vehicles.size;
-      for(const v of parsed)vehicles.set(v.id,v);
+      let parsed:SupplierVehicle[]=[];
+      for(let attempt=0;attempt<2;attempt++) {
+        try {
+          const response=await fetcher(url,{redirect:'error',signal:AbortSignal.timeout(15000),headers:{Accept:'text/html',Cookie:'currency=USD'}});
+          if(!response.ok)throw new Error(`Supplier HTTP ${response.status} (make ${make}, page ${page})`);
+          const html=await response.text();if(html.length>5000000)throw new Error('Supplier response exceeds limit');
+          parsed=parseBeforward(html);
+          if(!parsed.length) {
+            const isBotChallenge=/javascript\s+is\s+disabled|verify.*not.*a?\s*robot|cf-browser-verification|enable\s+javascript|checking\s+your\s+browser/i.test(html);
+            if(isBotChallenge)throw new Error(`Bot-verification challenge from supplier (make ${make}, page ${page}, ${html.length} bytes): GCP egress IP is blocked. Refresh from a non-cloud IP or configure a residential proxy.`);
+            const title=plain(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]??'').slice(0,120);
+            const summary=title||plain(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,'')).slice(0,180)||'Empty or script-only response';
+            throw new Error(`No usable USD listings (make ${make}, page ${page}, ${html.length} bytes): ${summary}`);
+          }
+          break;
+        } catch(error) {if(attempt===1)throw error;}
+      }
+      const size=vehicles.size;for(const v of parsed)vehicles.set(v.id,v);
       if(vehicles.size===size)break;
-      if(vehicles.size>=300)break;
     }
-    if(vehicles.size>=300)break;
-  }
-  if(!vehicles.size)throw new Error('Supplier markup changed; previous snapshot retained');
-  return [...vehicles.values()].slice(0,300);
+    return [...vehicles.values()];
+  }));
+  // Publish only after all makes succeed, retaining the full saved selection on failure.
+  return [...new Map(groups.flat().map(v=>[v.id,v])).values()].slice(0,300);
 }

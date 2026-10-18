@@ -33,6 +33,7 @@ export default function NewCase() {
         vehicleId: vehicleId || undefined,
         statusNote: statusNote.trim() || undefined,
         supplierLeadId:(state as {supplierLeadId?:string}|null)?.supplierLeadId,
+        enquiryLeadId:(state as {enquiryLeadId?:string}|null)?.enquiryLeadId,
       });
       setResult(res.caseNum);
     } catch (err) {

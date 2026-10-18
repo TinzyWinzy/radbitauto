@@ -1,3 +1,4 @@
+import {addEnquiryTracking,trackingHash,validateTrackingToken} from './enquiryAccess.ts';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { createHash } from 'node:crypto';
@@ -7,7 +8,7 @@ import { text, id, cents, owned, leadRef } from './dealership.ts';
 import { transactionWriteCheck, subscriptionState } from './subscriptions.ts';
 import { ts } from './audits.ts';
 import { beforwardSeed } from './beforwardSeed.ts';
-import { fetchBeforwardSelection, freshSupplierVehicle, parseSupplierDetail, type SupplierVehicle, type SupplierDetailSpecs } from './beforwardParser.ts';
+import { fetchBeforwardSelection, availableSupplierSelection, parseSupplierDetail, type SupplierVehicle, type SupplierDetailSpecs } from './beforwardParser.ts';
 import { globalTaxSet } from './quotations.ts';
 import { supplierLandedEstimate, type SupplierLandedEstimate } from './supplierEstimate.ts';
 import type { TaxRateSet } from './types.ts';
@@ -30,20 +31,38 @@ async function estimateFor(vehicle:EstimatedSupplierVehicle, detail?:SupplierDet
 }
 async function selection():Promise<EstimatedSupplierVehicle[]> {
   const snap=await snapshotRef.get();
-  const stock:SupplierVehicle[]=snap.exists?snap.data()!.stock:beforwardSeed;
-  const fresh=stock.filter(v=>freshSupplierVehicle(v));
+  const stock=availableSupplierSelection(snap.data()?.stock,beforwardSeed);
   const taxSet=await activeTaxSet();
   const refDate=new Date().toISOString().slice(0,10);
-  return fresh.map(v=>({...v,estimate:taxSet?supplierLandedEstimate(v,taxSet,refDate):null}));
+  return stock.map(v=>({...v,estimate:taxSet?supplierLandedEstimate(v,taxSet,refDate):null}));
 }
 async function refreshSelection() {
-  const stock=await fetchBeforwardSelection();
-  await snapshotRef.set({stock,updatedAt:ts()});return {count:stock.length};
+  await db.runTransaction(async tx=>{
+    const previous=await tx.get(snapshotRef);
+    if((previous.data()?.refreshLockUntil??0)>Date.now())throw new HttpsError('already-exists','A supplier refresh is already running. Check status shortly.');
+    tx.set(snapshotRef,{lastAttemptAt:ts(),refreshStatus:'refreshing',refreshLockUntil:Date.now()+240000},{merge:true});
+  });
+  try {
+    const stock=await fetchBeforwardSelection();
+    await snapshotRef.set({stock,updatedAt:ts(),lastSuccessAt:ts(),refreshStatus:'healthy',lastError:'',consecutiveFailures:0,refreshLockUntil:0},{merge:true});
+    return {count:stock.length};
+  } catch(error) {
+    const message=(error instanceof Error?error.message:'Supplier refresh failed').slice(0,500);
+    await db.runTransaction(async tx=>{const old=await tx.get(snapshotRef);tx.set(snapshotRef,{refreshStatus:'failed',lastError:message,lastFailureAt:ts(),refreshLockUntil:0,consecutiveFailures:(old.data()?.consecutiveFailures??0)+1},{merge:true});});
+    console.error('Supplier catalogue refresh failed; saved inventory remains available',message);
+    throw new HttpsError('unavailable',message);
+  }
 }
+export const supplierCatalogueStatus=onCall(async request=>{
+  await requirePlatformCaller(contextFrom(request));
+  const data=(await snapshotRef.get()).data();
+  const iso=(v:any)=>v?.toDate?.().toISOString()??null;
+  return {status:data?.refreshStatus??'unknown',count:data?.stock?.length??0,lastAttemptAt:iso(data?.lastAttemptAt),lastSuccessAt:iso(data?.lastSuccessAt??data?.updatedAt),lastError:data?.lastError??'',consecutiveFailures:data?.consecutiveFailures??0};
+});
 export const refreshSupplierCatalogue=onCall({timeoutSeconds:240},async request=>{
   await requirePlatformCaller(contextFrom(request));return refreshSelection();
 });
-export const supplierCatalogueMaintenance=onSchedule({schedule:'every 6 hours',timeZone:'Africa/Harare',timeoutSeconds:240,maxInstances:1},async()=>{await refreshSelection();});
+export const supplierCatalogueMaintenance=onSchedule({schedule:'every 6 hours',timeZone:'Africa/Harare',timeoutSeconds:240,maxInstances:1,retryCount:2,minBackoffSeconds:60,maxBackoffSeconds:300},async()=>{await refreshSelection();});
 export const publicSupplierCatalogue=onCall(async()=>({stock:await selection(),limited:true}));
 export const publicSupplierVehicle=onCall({timeoutSeconds:35,maxInstances:2},async request=>{
   const vehicle=(await selection()).find(v=>v.id===id(request.data.supplierVehicleId));
@@ -85,17 +104,19 @@ export const enquireSupplierVehicle=onCall(async request=>{
   const company=(await db.collection('companies').where('slug','==',slug).limit(1).get()).docs[0];
   if(!company||!importDealerEligible(company.data()))throw new HttpsError('failed-precondition','This dealer is not accepting import enquiries. Choose another dealer.');
   const name=text(d.name,'Name'),phone=text(d.phone,'Phone'),preferences=text(d.preferences,'Questions',true),budgetCents=cents(d.budgetCents??0);
+  const trackingToken=d.trackingToken?validateTrackingToken(d.trackingToken):null;let canTrack=false;
   const requestId=id(d.requestId),lead=db.doc(`dealer_leads/${createHash('sha256').update(`${company.id}|supplier|${requestId}`).digest('hex')}`);
   const hour=Math.floor(Date.now()/3600000),throttle=db.doc(`dealer_enquiry_limits/${createHash('sha256').update(`${request.rawRequest.ip}|supplier|${hour}`).digest('hex')}`);
   await db.runTransaction(async tx=>{
     await transactionWriteCheck(tx,company.id);
     const [currentCompany,existing,limit]=await Promise.all([tx.get(company.ref),tx.get(lead),tx.get(throttle)]);
     if(!importDealerEligible(currentCompany.data()!))throw new HttpsError('failed-precondition','Dealer unavailable');
-    if(existing.exists){if(existing.data()?.phone!==phone||existing.data()?.supplierVehicle.id!==vehicle.id)throw new HttpsError('already-exists','Enquiry key already used');return;}
+    if(existing.exists){if(existing.data()?.phone!==phone||existing.data()?.supplierVehicle.id!==vehicle.id)throw new HttpsError('already-exists','Enquiry key already used');canTrack=!!trackingToken&&existing.data()?.trackingHash===trackingHash(trackingToken);return;}
     if((limit.data()?.count??0)>=10)throw new HttpsError('resource-exhausted','Too many enquiries. Please try again later.');
     tx.set(throttle,{count:(limit.data()?.count??0)+1,expiresAt:new Date((hour+2)*3600000)});
     tx.create(lead,{companyId:company.id,name,phone,preferences,interest:'import',budgetCents,status:'new',followUp:'',source:'beforward',supplierVehicle:vehicle,supplierVerification:{status:'pending'},createdAt:ts(),updatedAt:ts()});
-  });return {received:true,ref:leadRef(lead.id),dealer:{name:company.data().name,slug,whatsapp:typeof company.data().contactWhatsapp==='string'?company.data().contactWhatsapp:''}};
+    if(trackingToken){addEnquiryTracking(tx,lead,company.id,trackingToken);canTrack=true;}
+  });return {received:true,...(canTrack?{trackingToken}:{}),ref:leadRef(lead.id),dealer:{name:company.data().name,slug,whatsapp:typeof company.data().contactWhatsapp==='string'?company.data().contactWhatsapp:''}};
 });
 export const verifySupplierLead=onCall(async request=>{
   const ctx=contextFrom(request),staff=await requireStaff(ctx),d=request.data;
@@ -107,4 +128,25 @@ export const verifySupplierLead=onCall(async request=>{
     tx.update(ref,{supplierVerification:{status:d.status,evidence,verifiedAt:new Date().toISOString(),verifiedBy:ctx.uid},updatedAt:ts()});
     tx.create(db.collection('audit_log').doc(),{companyId:staff.companyId,actorId:ctx.uid,entityType:'dealer_leads',entityId:ref.id,action:'supplier.verify',detail:{status:d.status,evidence},createdAt:ts()});
   });return {saved:true};
+});
+
+export const sourceSupplierVehicle=onCall(async request=>{
+  const ctx=contextFrom(request),staff=await requireStaff(ctx),d=request.data;
+  const vehicle=(await selection()).find(v=>v.id===id(d.supplierVehicleId));
+  if(!vehicle)throw new HttpsError('not-found','Choose a vehicle from the current selection');
+  const customerId=d.customerId?id(d.customerId):null;
+  const requestId=id(d.requestId),preferences=text(d.preferences??'','Notes',true),budgetCents=cents(d.budgetCents??0);
+  const lead=db.doc(`dealer_leads/${createHash('sha256').update(`${staff.companyId}|dealer-supplier|${requestId}`).digest('hex')}`);
+  await db.runTransaction(async tx=>{
+    await transactionWriteCheck(tx,staff.companyId);
+    const [company,existing,customer]=await Promise.all([tx.get(db.doc(`companies/${staff.companyId}`)),tx.get(lead),customerId?tx.get(db.doc(`customers/${customerId}`)):Promise.resolve(null)]);
+    if(!['sourcing','both'].includes(company.data()?.operationMode))throw new HttpsError('failed-precondition','Your agency must offer vehicle sourcing');
+    const c=customer?owned(customer.data(),staff.companyId):null;
+    if(c&&c.isActive!==true)throw new HttpsError('failed-precondition','Customer inactive');
+    if(existing.exists){const old=existing.data()!;if(old.supplierVehicle.id!==vehicle.id||old.customerId!==customerId||old.createdBy!==ctx.uid)throw new HttpsError('already-exists','Request already used');return;}
+    const name=text(c?.fullName??d.name,'Customer name'),phone=text(c?.phoneNumber??d.phone,'WhatsApp / phone');
+    tx.create(lead,{companyId:staff.companyId,customerId,name,phone,preferences,budgetCents,interest:'import',status:'new',followUp:'',assignedTo:ctx.uid,createdBy:ctx.uid,source:'dealer_supplier',supplierVehicle:vehicle,supplierVerification:{status:'pending'},createdAt:ts(),updatedAt:ts()});
+    tx.create(db.collection('audit_log').doc(),{companyId:staff.companyId,actorId:ctx.uid,entityType:'dealer_leads',entityId:lead.id,action:'supplier.source',detail:{supplierVehicleId:vehicle.id,customerId},createdAt:ts()});
+  });
+  return {leadId:lead.id,ref:leadRef(lead.id)};
 });

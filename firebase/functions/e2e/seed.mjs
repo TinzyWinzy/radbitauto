@@ -42,6 +42,7 @@ async function main() {
   await Promise.all(priorRates.docs.map((document) => document.ref.delete()));
   // Company + settings + stages + tax set
   await db.collection('companies').doc(COMPANY_ID).set({
+    operationMode: 'both',
     slug: 'e2e',
     name: 'E2E Motors',
     casePrefix: 'E2',

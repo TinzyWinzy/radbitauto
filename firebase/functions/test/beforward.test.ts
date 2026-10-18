@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseBeforward, freshSupplierVehicle, parseSupplierPhotos, parseSupplierDetail } from '../src/beforwardParser.ts';
+import { fetchBeforwardSelection, availableSupplierSelection, parseBeforward, freshSupplierVehicle, parseSupplierPhotos, parseSupplierDetail } from '../src/beforwardParser.ts';
 import { beforwardSeed } from '../src/beforwardSeed.ts';
 const row=`<tr class="stocklist-row"><td><a href="/toyota/aqua/ce123456/id/123456/"><img src="//image-cdn.beforward.jp/medium/123/CE123456.jpg?w=200"></a><p class="make-model"><a>2020 TOYOTA AQUA &amp; G</a></p><p class="vehicle-price"><span class="price">$4,250</span></p><p class="total-price">$8,000</p><table><tr><td class="basic-spec-col mileage"><p class="title">Mileage</p><p class="val">42,100 km</p></td><td class="basic-spec-col year"><p class="title">Year</p><p class="val">2020/4</p></td><td class="basic-spec-col trans"><p class="title">Trans.</p><p class="val">AT</p></td></tr></table><td>Fuel</td><td>Hybrid(Petrol)</td></td></tr>`;
 test('extracts supplier price rather than destination total, decodes text and deduplicates',()=>{
@@ -54,4 +54,19 @@ test('normalises four-wheel drive and tolerates markup without a specification t
  assert.equal(parseSupplierDetail(html,'CE457744').detail.drive,'4WD');
  const empty=parseSupplierDetail('<html><body>Access denied</body></html>','CE457744');
  assert.deepEqual(empty.detail,{});assert.deepEqual(empty.photos,[]);
+});
+
+test('keeps saved imports browsable after 48 hours and falls back for missing or empty snapshots',()=>{
+ const old=[{...beforwardSeed[0],checkedAt:'2020-01-01T00:00:00Z'}];
+ assert.equal(availableSupplierSelection(old,beforwardSeed),old);
+ assert.equal(availableSupplierSelection([],beforwardSeed),beforwardSeed);
+ assert.equal(availableSupplierSelection(undefined,beforwardSeed),beforwardSeed);
+ assert.equal(availableSupplierSelection(old,beforwardSeed)[0].checkedAt,old[0].checkedAt);
+});
+
+test('supplier fetch retries transient failures and reports unusable supplier pages',async()=>{
+ let attempts=0;
+ const stock=await fetchBeforwardSelection((async()=>{attempts++;return attempts===1?new Response('temporary',{status:503}):new Response(row);}) as typeof fetch);
+ assert.ok(stock.length);assert.ok(attempts>10);
+ await assert.rejects(fetchBeforwardSelection((async()=>new Response('<title>Access denied</title>')) as typeof fetch),/No usable USD listings.*Access denied/);
 });

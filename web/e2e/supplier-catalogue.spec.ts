@@ -34,7 +34,7 @@ test('supplier failures retry; expired cars and no eligible dealers have useful 
  let failed=true;await page.route('**/publicSupplierCatalogue',r=>r.fulfill({json:failed?{error:{status:'UNAVAILABLE',message:'Supplier unavailable'}}:{result:{stock:[vehicle],limited:true}}}));
  await page.route('**/publicSupplierVehicle',r=>r.fulfill({json:{result:{photos:vehicle.photos}}}));
  await page.route('**/publicImportDealers',r=>r.fulfill({json:{result:{dealers:[],nextCursor:null}}}));
- await page.goto(`/imports/${vehicle.id}`);await expect(page.getByRole('button',{name:'Try again'})).toBeVisible();failed=false;await page.getByRole('button',{name:'Try again'}).click();await expect(page.getByText('No participating import dealers are accepting enquiries yet.')).toBeVisible();
+ await page.goto('/imports');await expect(page.getByText(/Showing our saved import selection while/)).toBeVisible();await expect(page.getByRole('heading',{name:beforwardSeed[0].title,exact:true})).toBeVisible();failed=false;await page.getByRole('button',{name:'Check again'}).click();await page.goto(`/imports/${vehicle.id}`);await expect(page.getByText('No participating import dealers are accepting enquiries yet.')).toBeVisible();
  await page.goto('/imports/EXPIRED');await expect(page.getByRole('link',{name:'Browse import vehicles'})).toBeVisible();
 });
 
@@ -64,4 +64,11 @@ test('import detail shows supplier specifications and a labelled landed-cost est
  await expect(specs.getByText('2WD')).toBeVisible();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.screenshot({path:'release-evidence/supplier-landed-estimate.png',fullPage:true});
+});
+
+test('empty supplier response keeps imports browsable',async({page})=>{
+ await page.route('**/publicSupplierCatalogue',r=>r.fulfill({json:{result:{stock:[],limited:true}}}));
+ await page.goto('/imports');
+ await expect(page.getByText('Showing our saved import selection. Your dealer will confirm current availability and price.')).toBeVisible();
+ await expect(page.getByRole('heading',{name:beforwardSeed[0].title,exact:true})).toBeVisible();
 });

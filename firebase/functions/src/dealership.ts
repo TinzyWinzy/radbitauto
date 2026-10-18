@@ -1,3 +1,5 @@
+import {addEnquiryTracking,trackingHash,validateTrackingToken} from './enquiryAccess.ts';
+import {leadReminder} from './enquiryPolicy.ts';
 import { validateStockSpecs, stockSpecsProjection } from './publicStock.ts';
 import { transactionWriteCheck } from './subscriptions.ts';
 import { capacityCheck, subscriptionState } from './subscriptions.ts';
@@ -35,7 +37,7 @@ export const dealershipWorkspace = onCall(async request => {
   for (const collection of ['dealer_leads', 'dealer_stock', 'dealer_sales', 'dealer_acquisitions']) {
     if(collection === 'dealer_acquisitions' && staff.role !== 'admin') {result[collection]=[];continue;}
     const snap = await db.collection(collection).where('companyId', '==', staff.companyId).get();
-    result[collection] = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    result[collection] = snap.docs.map(doc => ({ id: doc.id, ...doc.data(), ...(collection==='dealer_leads'?{reminder:leadReminder(doc.data())}:{}) }));
   }
   if (staff.role === 'admin') {
     const costs = await db.collection('dealer_costs').where('companyId', '==', staff.companyId).get();
@@ -52,7 +54,7 @@ export const saveDealerLead = onCall(async request => {
   const status = d.status ?? 'new';
   if (!['new', 'contacted', 'viewing', 'won', 'lost'].includes(status)) throw new HttpsError('invalid-argument', 'Invalid lead status');
   const followUp = text(d.followUp, 'Follow-up', true);
-  if (followUp && !/^\d{4}-\d{2}-\d{2}$/.test(followUp)) throw new HttpsError('invalid-argument', 'Use a follow-up date');
+  if (followUp && (!/^\d{4}-\d{2}-\d{2}$/.test(followUp)||!Number.isFinite(Date.parse(followUp))||new Date(followUp).toISOString().slice(0,10)!==followUp)) throw new HttpsError('invalid-argument', 'Use a follow-up date');
   await db.runTransaction(async tx => {
     await transactionWriteCheck(tx, staff.companyId);
     const old = await tx.get(ref);
@@ -61,7 +63,7 @@ export const saveDealerLead = onCall(async request => {
     const assignee=await tx.get(db.doc(`staff/${assignedTo}`));if(assignee.data()?.companyId!==staff.companyId||assignee.data()?.isActive!==true)throw new HttpsError('invalid-argument','Choose an active team member');
     tx.set(ref, { companyId: staff.companyId, name: text(d.name, 'Name'), phone: text(d.phone, 'Phone'), interest, status,
       budgetCents: cents(d.budgetCents ?? 0), preferences: text(d.preferences, 'Preferences', true), followUp,
-      assignedTo, updatedAt: ts(), createdAt: old.data()?.createdAt ?? ts() }, {merge:true});
+      ...(old.data()?.nextAction?{nextAction:{...old.data()!.nextAction,dueDate:followUp,...(followUp?{state:'pending'}:{})}}:{}),assignedTo, updatedAt: ts(), createdAt: old.data()?.createdAt ?? ts() }, {merge:true});
   });
   return { leadId: ref.id };
 });
@@ -218,9 +220,11 @@ export const enquireDealerShowroom = onCall(async request => {
   const stockId = d.stockId ? id(d.stockId) : undefined;
   const hour = Math.floor(Date.now()/3600000);
   const key = createHash('sha256').update(`${company.id}|${request.rawRequest.ip}|${hour}`).digest('hex');
-  const throttle = db.collection('dealer_enquiry_limits').doc(key); const lead = db.collection('dealer_leads').doc();
+  const throttle = db.collection('dealer_enquiry_limits').doc(key); const lead = d.requestId?db.doc(`dealer_leads/${createHash('sha256').update(`${company.id}|showroom|${id(d.requestId)}`).digest('hex')}`):db.collection('dealer_leads').doc();
+  const trackingToken=d.trackingToken?validateTrackingToken(d.trackingToken):null;let canTrack=false;
   await db.runTransaction(async tx => {
     await transactionWriteCheck(tx, company.id);
+    const existing=await tx.get(lead);if(existing.exists){if(existing.data()?.phone!==phone||existing.data()?.name!==name)throw new HttpsError('already-exists','Enquiry request already used');canTrack=!!trackingToken&&existing.data()?.trackingHash===trackingHash(trackingToken);return;}
     const selected = stockId ? owned((await tx.get(db.doc(`dealer_stock/${stockId}`))).data(),company.id) : undefined;
     if (selected && (selected.published !== true || selected.status !== 'available')) throw new HttpsError('failed-precondition','This vehicle is no longer available. Contact the dealer for alternatives.');
     if (stockId && interest !== 'stock') throw new HttpsError('invalid-argument','A selected stock enquiry must use stock interest');
@@ -228,6 +232,7 @@ export const enquireDealerShowroom = onCall(async request => {
     if (current >= 10) throw new HttpsError('resource-exhausted','Too many enquiries. Contact the dealer on WhatsApp.');
     tx.set(throttle,{count:current+1,expiresAt:new Date((hour+2)*3600000)});
     tx.set(lead,{companyId:company.id,name,phone,preferences,interest,budgetCents,status:'new',followUp:'',source:'showroom',...(stockId ? {stockId,stockTitle:selected!.title} : {}),createdAt:ts(),updatedAt:ts()});
+    if(trackingToken){addEnquiryTracking(tx,lead,company.id,trackingToken);canTrack=true;}
   });
-  return {received:true};
+  return {received:true,ref:leadRef(lead.id),...(canTrack?{trackingToken}:{})};
 });

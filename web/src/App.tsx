@@ -22,6 +22,8 @@ const AgencySetup = lazy(() => import('./pages/AgencySetup'));
 const Invitation = lazy(() => import('./pages/Invitation'));
 const Operations = lazy(() => import('./pages/Operations'));
 const Help = lazy(() => import('./pages/Help'));
+const DealerEnquiry = lazy(() => import('./pages/DealerEnquiry'));
+const EnquiryTracking = lazy(() => import('./pages/EnquiryTracking'));
 const Dealership = lazy(() => import('./pages/Dealership'));
 const Showroom = lazy(() => import('./pages/Showroom'));
 const ImportCatalogue = lazy(() => import('./pages/ImportCatalogue'));
@@ -84,6 +86,7 @@ export default function App() {
       <OfflineBanner />
       <Suspense fallback={<Spinner />}>
       <Routes>
+        <Route path="/enquiry" element={<EnquiryTracking />} />
         <Route path="/help" element={<Help />} />
         <Route path="/showroom/:slug" element={<Showroom />} />
         <Route path="/imports" element={<ImportCatalogue />} />
@@ -132,6 +135,7 @@ export default function App() {
           <Route path="new/staff" element={<NewStaff />} />
           <Route path="team" element={<Team />} />
           <Route path="operations" element={<Operations />} />
+          <Route path="enquiries/:leadId" element={<DealerEnquiry />} />
           <Route path="dealership" element={<Dealership />} />
           <Route path="purchases/:saleId" element={<RetailPurchase />} />
           <Route path="acquisitions" element={<DealerAcquisitions />} />

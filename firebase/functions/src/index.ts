@@ -28,5 +28,7 @@ export { subscriptionMaintenance, logAgencySupport, agencyUsageHistory } from '.
 
 export { setCaseNextAction } from './journeyAction.ts';
 
-export { publicSupplierCatalogue, publicSupplierVehicle, publicImportDealers, enquireSupplierVehicle, verifySupplierLead, refreshSupplierCatalogue, supplierCatalogueMaintenance } from './supplierCatalogue.ts';
+export { sourceSupplierVehicle, supplierCatalogueStatus, publicSupplierCatalogue, publicSupplierVehicle, publicImportDealers, enquireSupplierVehicle, verifySupplierLead, refreshSupplierCatalogue, supplierCatalogueMaintenance } from './supplierCatalogue.ts';
 
+
+export { dealerEnquiryDetails, issueEnquiryQuotation, saveEnquiryPrivateCosts, updateEnquiryAction, manageEnquiryTracking, publicEnquiryTracking } from './enquiryLifecycle.ts';

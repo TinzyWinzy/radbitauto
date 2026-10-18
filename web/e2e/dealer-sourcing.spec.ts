@@ -1,0 +1,31 @@
+import {test,expect} from '@playwright/test';
+import {loginAs,adminEmail,platformEmail} from './accounts';
+import {beforwardSeed} from '../../firebase/functions/src/beforwardSeed';
+const vehicle={...beforwardSeed[0],checkedAt:new Date().toISOString()};
+test('dealer sources a supplier vehicle for a customer and finds the enquiry',async({page})=>{
+ await loginAs(page,adminEmail);await expect(page).toHaveURL(/\/app$/);
+ await page.route('**/publicSupplierCatalogue',r=>r.fulfill({json:{result:{stock:[vehicle]}}}));
+ await page.route('**/publicSupplierVehicle',r=>r.fulfill({json:{result:{photos:vehicle.photos}}}));
+ await page.goto(`/imports/${vehicle.id}`);
+ const sourcing=page.getByRole('region',{name:'Dealer sourcing'});
+ await sourcing.getByRole('button',{name:'Source for customer',exact:true}).click();
+ const buyer=`Sourcing buyer ${Date.now()}`;
+ await sourcing.getByLabel('Customer name',{exact:true}).fill(buyer);
+ await sourcing.getByLabel('Customer WhatsApp / phone').fill('+263771234567');
+ await sourcing.getByLabel('Import budget').fill('12000');
+ await sourcing.getByRole('button',{name:'Save sourcing enquiry'}).click();
+ await expect(sourcing.getByRole('status')).toContainText('created');
+ await sourcing.getByRole('link',{name:'Open dealership enquiries'}).click();
+ await expect(page.getByRole('heading',{name:buyer,exact:true})).toBeVisible();
+ const lead=page.locator('.card').filter({has:page.getByRole('heading',{name:buyer,exact:true})});
+ await expect(lead).toContainText(vehicle.id);await expect(lead).toContainText('Availability: pending');
+});
+test('platform admin sees refresh failure and retries from supplier health panel',async({page})=>{
+ let healthy=false;
+ await page.route('**/supplierCatalogueStatus',r=>r.fulfill({json:{result:{status:healthy?'healthy':'failed',count:124,lastSuccessAt:'2026-10-09T00:00:00Z',lastAttemptAt:'2026-10-15T00:00:00Z',lastError:healthy?'':'Supplier HTTP 503',consecutiveFailures:healthy?0:3}}}));
+ await page.route('**/refreshSupplierCatalogue',r=>{healthy=true;return r.fulfill({json:{result:{count:124}}});});
+ await loginAs(page,platformEmail);await expect(page).toHaveURL(/\/onboarding$/);
+ const panel=page.getByRole('region',{name:'Supplier catalogue health'});
+ await expect(panel).toContainText('Supplier HTTP 503');await panel.getByRole('button',{name:'Refresh supplier selection'}).click();
+ await expect(panel).toContainText('0 consecutive failures');
+});

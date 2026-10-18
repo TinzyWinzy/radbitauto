@@ -33,6 +33,7 @@ test('registration compresses photos, retries attachment without creating anothe
   await form.getByLabel('Acquisition / owner settlement cost (USD)').fill('5000');
   await form.getByLabel('Other direct costs (USD)').fill('0');
   await form.getByRole('button',{name:'Add stock',exact:true}).click();
-  await expect(page.getByRole('img',{name:'Vehicle photo 1',exact:true})).toBeVisible();
-  await expect(page.getByText('Cover photo',{exact:true})).toBeVisible();
+  const stockCard=page.locator('div.card').filter({hasText:chassis});
+  await expect(stockCard.getByRole('img',{name:'Vehicle photo 1',exact:true})).toBeVisible();
+  await expect(stockCard.getByText('Cover photo',{exact:true})).toBeVisible();
 });

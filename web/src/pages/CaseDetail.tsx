@@ -1,3 +1,4 @@
+import EnquiryQuotation from '../components/EnquiryQuotation';
 import CaseNextAction from '../components/CaseNextAction';
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -124,7 +125,7 @@ export default function CaseDetail() {
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-4">
       <div className="min-w-0">
       {!isStaff ? <CustomerStatusAnswer caseDoc={caseDoc} whatsapp={company?.contactWhatsapp} /> : null}
-      <CaseNextAction caseId={caseDoc.id} action={caseDoc.nextAction} staff={isStaff}/><section className="case-passport mb-3" aria-label="Import summary">
+      {caseDoc.enquiryQuotation&&<Card className="mb-4"><details><summary>Pre-import quotation · reference copy</summary><p>This proposal is retained for reference. The issued case quotation governs the case balance.</p><EnquiryQuotation quote={caseDoc.enquiryQuotation} dealer={company?.name||'Your dealership'} vehicle={vehicle?`${vehicle.make} ${vehicle.model}`:'Customer import'}/></details></Card>}<CaseNextAction caseId={caseDoc.id} action={caseDoc.nextAction} staff={isStaff}/><section className="case-passport mb-3" aria-label="Import summary">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-accent">

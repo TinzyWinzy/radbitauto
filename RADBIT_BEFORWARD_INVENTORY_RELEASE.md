@@ -7,8 +7,8 @@ Radbit now lets buyers browse a captured supplier selection, open vehicle detail
 ## Inventory
 
 - Initial snapshot: 124 actual public listings from Toyota, Nissan, Honda, Mazda and Suzuki, captured on 9 October 2026. The selection is not BE FORWARD's complete inventory.
-- `supplierCatalogueMaintenance` refreshes five public make pages every six hours. Snapshot publication is atomic; fetch/parser failures retain the previous snapshot. Entries older than 48 hours are hidden.
-- `publicSupplierCatalogue` returns the current snapshot or the bundled initial snapshot when no stored snapshot exists. It never falls back to the seed when an existing snapshot expires.
+- `supplierCatalogueMaintenance` refreshes five public make pages every six hours. Snapshot publication is atomic; fetch/parser failures retain the previous snapshot. Listings remain browsable after 48 hours with a notice requiring dealer confirmation.
+- `publicSupplierCatalogue` returns the current snapshot or the bundled initial snapshot when no stored snapshot exists. Missing or empty snapshots use the bundled selection. Snapshot age does not remove listings; original check dates are preserved.
 - `publicSupplierVehicle` fetches a stored, validated supplier listing URL and caches up to 20 vehicle-specific gallery images for six hours. It falls back to the captured primary image when a gallery fetch fails. Photographs are served from BE FORWARD's image CDN; Radbit does not own a mirror of the files.
 - Platform administrators can call `refreshSupplierCatalogue` for a manual refresh. There is no public trigger that can overwrite inventory.
 - No account cookies, private supplier records or credentials are scraped. No arbitrary caller URL is fetched.
@@ -39,7 +39,7 @@ The enquiry is the record; the WhatsApp thread is the conversation. One shared r
 
 Fixed while wiring this up: `createCase` rejected `supplierLeadId` when it was `null`, which is what the callable transport produces for an absent optional field. Every import case created through Lead → Continue enquiry failed with `Invalid supplier enquiry`. The guard now treats `null` as absent (`cases.ts`), and dealership lead conversion is covered by `dealership.spec.ts`.
 
-Deliberately not built: WhatsApp Business API automation (a paid integration, listed as out of scope in `sad.txt`) and an anonymous public enquiry-status page (requires token design and would expose lead contact data).
+WhatsApp Business API automation remains outside scope. Private, expiring enquiry tracking links were added on 15 October 2026 with explicit customer-facing projections that exclude buyer contact details and private dealer data; see ENQUIRY_WORKFLOW_RELEASE.md.
 
 ## Validation
 
@@ -50,7 +50,7 @@ Deliberately not built: WhatsApp Business API automation (a paid integration, li
 
 ## Deployment
 
-Deploy the new supplier callable functions and scheduled maintenance, updated `createCase`, and hosting. The supplier collections use Admin SDK access only; existing production rules default-deny direct client access. Do not deploy emulator-only rules. Monitor scheduled job failures and supplier markup changes; stale stock is deliberately hidden rather than represented as current.
+Deploy the new supplier callable functions and scheduled maintenance, updated `createCase`, and hosting. The supplier collections use Admin SDK access only; existing production rules default-deny direct client access. Do not deploy emulator-only rules. Monitor scheduled job failures and supplier markup changes; saved stock remains browsable with its original check date and a dealer-confirmation notice.
 
 Deployed successfully on 9 October 2026 to `studio-285787437-bc95b`, including the scheduled maintenance function. Firebase discovery required `FUNCTIONS_DISCOVERY_TIMEOUT=60` on this host. The custom domain `https://auto.radbitstudios.co.zw/imports` returned HTTP 200 with the new application bundle.
 
@@ -60,3 +60,15 @@ The final check also passed on the custom domain after constraining the gallery 
 
 A second deployment on 9 October 2026 shipped the WhatsApp handoff and continuity layer on top of this release: `enquireSupplierVehicle` now returns the enquiry reference plus the dealer name, slug and WhatsApp number; the buyer's success state offers Continue on WhatsApp, Download request (PDF), Copy request and Share this car; `/imports` resurfaces the open enquiry with its reference and a follow-up message; and the dealer lead card shows the same reference with a prefilled Reply on WhatsApp. It also shipped the `createCase` supplier-lead null guard (import cases created from a converted lead previously failed with `Invalid supplier enquiry`) and a shared closed-transaction retry used by `bulkImportRecords`. Live read-only verification again returned 124 listings and the same bundle from both the default and custom domains; no enquiry was submitted. Evidence and the deploy record: `OPERATIONS_RUNBOOK.md`.
 
+
+15 October 2026: Removed the 48-hour browse expiry. The last successful supplier snapshot remains available for browsing, detail and enquiries until replaced. An empty snapshot or failed browser request uses the bundled selection. Supplier availability verification before case creation remains required.
+
+Deployed 15 October 2026: publicSupplierCatalogue, publicSupplierVehicle, enquireSupplierVehicle and Firebase Hosting updated successfully. Live custom-domain browser verification passed with 248 listings; an intercepted empty catalogue response displayed bundled vehicles and the saved-selection notice. No production enquiries submitted.
+
+Priority 1–2 implementation, 15 October 2026: supplier make pages are fetched concurrently with one retry per page, and failed refreshes retain the complete saved snapshot. Scheduler retries run twice with backoff. Platform onboarding now includes supplier health (last success, last attempt, failure count and diagnostic message) and a manual refresh action. A transaction lease prevents overlapping refreshes. Older listings carry an availability-check label. The existing backend-error monitoring receives refresh failures through error logs; no new email delivery integration is claimed.
+
+Signed-in dealer staff can source a vehicle from the catalogue/detail page for an existing tenant-owned customer or a new enquiry. The server derives vehicle/customer details, creates an assigned, audited, retry-safe sourcing lead and requires sourcing capability and writable subscription access. Existing supplier verification and case-conversion gates remain in force. No supplier reservation or purchase is performed.
+
+Priority 1–2 deployment verified 15 October 2026: sourceSupplierVehicle and supplierCatalogueStatus created; refreshSupplierCatalogue, supplierCatalogueMaintenance and Hosting updated. Nine parser/unit tests, four Firestore-emulator supplier tests and two browser flows passed (final browser run without retries). Public custom-domain mobile catalogue passed; both new callables returned HTTP 401 UNAUTHENTICATED to anonymous requests. No production enquiries were created during verification.
+
+Outstanding external dependency: an explicitly triggered production refresh received a 2,004-byte supplier robot-verification page: 'JavaScript is disabled ... verify that you are not a robot'. This confirms cloud requests are challenged; it is not an ordinary listing parser failure. The saved 248 vehicles remained intact. Retries, failure status and administrator retry controls are deployed, but automatic freshness requires a supplier-approved feed or access arrangement. No bypass of supplier bot verification was implemented.
