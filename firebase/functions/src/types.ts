@@ -15,6 +15,8 @@ export interface UserDoc {
   whatsappRef?: string;
   isActive: boolean;
   createdAt: Timestamp;
+  consent?: { termsVersion?: string; privacyVersion?: string; consentedAt?: Timestamp };
+  notificationPrefs?: NotificationPrefs;
 }
 
 export interface PlatformAdminDoc {
@@ -36,6 +38,7 @@ export interface CustomerDoc {
   fullName: string;
   lastNameLower: string;
   phoneNumber: string;
+  email?: string;
   whatsappRef?: string;
   isActive: boolean;
   createdAt: Timestamp;
@@ -168,6 +171,54 @@ export interface NotificationDoc {
   body: string;
   payload: Record<string, unknown>;
   readAt?: Timestamp;
+  createdAt: Timestamp;
+}
+
+export type NotificationChannel = 'in_app' | 'log' | 'email' | 'sms' | 'whatsapp';
+export type NotificationOutboxStatus = 'pending' | 'dispatched' | 'skipped' | 'failed';
+
+export interface NotificationPrefs {
+  email: boolean;
+  whatsapp: boolean;
+  sms: boolean;
+  marketing: boolean;
+}
+
+export interface NotificationOutboxDoc {
+  companyId: CompanyId;
+  caseId: string;
+  eventKey: string;
+  data: Record<string, unknown>;
+  channels: NotificationChannel[];
+  status: NotificationOutboxStatus;
+  attempts: number;
+  recipientUserId?: string | null;
+  createdAt: Timestamp;
+  dispatchedAt?: Timestamp;
+}
+
+export interface NotificationLogDoc {
+  outboxId: string;
+  companyId: CompanyId;
+  caseId: string;
+  eventKey: string;
+  channels: NotificationChannel[];
+  recipientUserId?: string | null;
+  status: NotificationOutboxStatus;
+  createdAt: Timestamp;
+}
+
+export type ConsentPurpose = 'terms' | 'privacy' | 'processing' | 'marketing';
+
+export interface ConsentDoc {
+  companyId?: CompanyId;
+  subjectUserId?: string;
+  customerId?: string;
+  purpose: ConsentPurpose;
+  version: string;
+  granted: boolean;
+  method: 'signup_checkbox' | 'staff_capture';
+  source?: string;
   createdAt: Timestamp;
 }
 

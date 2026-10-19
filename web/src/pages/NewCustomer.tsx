@@ -12,6 +12,7 @@ export default function NewCustomer() {
   const [requestKey] = useState(() => crypto.randomUUID());
   const [fullName, setFullName] = useState(customer?.fullName ?? '');
   const [phoneNumber, setPhoneNumber] = useState(customer?.phoneNumber ?? '');
+  const [email, setEmail] = useState('');
   const [whatsappRef, setWhatsappRef] = useState('');
   const [emailOrUid, setEmailOrUid] = useState('');
   const [busy, setBusy] = useState(false);
@@ -31,7 +32,7 @@ export default function NewCustomer() {
         whatsappRef: whatsappRef.trim() || undefined,
         ...(identifier.includes('@') ? { email: identifier } : { userId: identifier }),
       };
-      const res = customer ? await api.linkCustomer(input) : await api.createCustomerRecord({ fullName: fullName.trim(), phoneNumber: phoneNumber.trim(), idempotencyKey: requestKey });
+      const res = customer ? await api.linkCustomer(input) : await api.createCustomerRecord({ fullName: fullName.trim(), phoneNumber: phoneNumber.trim(), email: email.trim() || undefined, idempotencyKey: requestKey });
       setResult(res.customerId);
     } catch (err) {
       setError((err as Error)?.message ?? 'Failed to link customer');
@@ -76,6 +77,9 @@ export default function NewCustomer() {
         <Field label="Full name">
           <Input value={fullName} onChange={(e) => setFullName(e.target.value)} required placeholder="e.g. Blessing Chiwa" />
         </Field>
+        {!customer ? <Field label="Email address" hint="Optional — used to send import updates">
+          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="customer@example.com" />
+        </Field> : null}
         <div className="grid grid-cols-2 gap-3">
           <Field label="Phone number">
             <Input value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} required placeholder="+263..." />

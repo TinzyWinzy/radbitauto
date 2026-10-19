@@ -267,5 +267,15 @@ service cloud.firestore {
                 || isPlatformAdmin();
       allow write: if false;
     }
+
+    // Consent records are written and read only by trusted Cloud Functions.
+    match /consents/{consentId} {
+      allow read, write: if false;
+    }
+
+    // Data-subject requests are created and resolved only by trusted Cloud Functions.
+    match /data_requests/{requestId} {
+      allow read, write: if false;
+    }
   }
 }

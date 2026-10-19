@@ -3,11 +3,19 @@ import { sendPasswordResetEmail, signOut } from 'firebase/auth';
 import { useAuth } from '../lib/auth';
 import { auth } from '../lib/firebase';
 import { api } from '../lib/api';
-import { useCompanyDoc, useCompanySettings, useNotifications, useStaff } from '../lib/hooks';
+import { useCompanyDoc, useCompanySettings, useNotifications, useStaff, useUserProfile } from '../lib/hooks';
+import type { NotificationPrefs } from '../lib/types';
 import { setAppBadge } from '../lib/share';
 import { Button, Card } from '../components/ui';
 import { PageHeader } from '../components/status';
 import { Link } from 'react-router-dom';
+
+const PREF_ROWS: { key: keyof NotificationPrefs; label: string }[] = [
+  { key: 'email', label: 'Email updates' },
+  { key: 'whatsapp', label: 'WhatsApp updates' },
+  { key: 'sms', label: 'SMS updates' },
+  { key: 'marketing', label: 'Product and marketing messages' },
+];
 
 export default function Account() {
   const { user, claims } = useAuth();
@@ -17,10 +25,76 @@ export default function Account() {
   const settings = useCompanySettings(claims.companyId);
   const { data: staff } = useStaff(claims.companyId);
   const notes = useNotifications(user?.uid);
+  const profile = useUserProfile(user?.uid);
   const myStaff = staff.find((s) => s.id === user?.uid);
   const [resetSent, setResetSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [baseMsg, setBaseMsg] = useState<string | null>(null);
+  const [prefs, setPrefs] = useState<NotificationPrefs>({ email: true, whatsapp: true, sms: true, marketing: false });
+  const [prefsMsg, setPrefsMsg] = useState<string | null>(null);
+  const [dataMsg, setDataMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    const stored = profile?.notificationPrefs;
+    if (!stored) return;
+    setPrefs({
+      email: stored.email !== false,
+      whatsapp: stored.whatsapp !== false,
+      sms: stored.sms !== false,
+      marketing: stored.marketing === true,
+    });
+  }, [profile]);
+
+  async function savePrefs() {
+    setBusy(true);
+    setPrefsMsg(null);
+    try {
+      const res = await api.updateNotificationPrefs(prefs);
+      setPrefs(res.notificationPrefs);
+      setPrefsMsg('Preferences saved');
+    } catch (e) {
+      setPrefsMsg((e as Error)?.message ?? 'Could not save preferences');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function downloadMyData() {
+    setBusy(true);
+    setDataMsg(null);
+    try {
+      const payload = await api.exportMyData({});
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `my-data-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      setDataMsg('Your data export has been downloaded.');
+    } catch (e) {
+      setDataMsg((e as Error)?.message ?? 'Could not export your data');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function requestDeletion() {
+    setBusy(true);
+    setDataMsg(null);
+    try {
+      const res = await api.requestErasure({});
+      setDataMsg(
+        res.agencies > 0
+          ? `Deletion request sent to ${res.agencies} ${res.agencies === 1 ? 'agency' : 'agencies'}. They will contact you about any records they must retain by law.`
+          : 'Deletion request recorded. Support will contact you.',
+      );
+    } catch (e) {
+      setDataMsg((e as Error)?.message ?? 'Could not submit your request');
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function ensure() {
     if (!claims.companyId) return;
@@ -72,6 +146,34 @@ export default function Account() {
           ))}
         </Card>
       ) : null}
+
+      <Card className="mb-3">
+        <h2 className="field-label">Notification preferences</h2>
+        <p className="mb-2 text-xs text-slate-400">Choose how we may contact you about your imports. Marketing messages are off unless you opt in.</p>
+        {PREF_ROWS.map((row) => (
+          <label key={row.key} className="flex items-center justify-between gap-3 py-1 text-sm">
+            <span>{row.label}</span>
+            <input
+              type="checkbox"
+              checked={prefs[row.key]}
+              onChange={(e) => setPrefs({ ...prefs, [row.key]: e.target.checked })}
+              className="h-4 w-4"
+            />
+          </label>
+        ))}
+        {prefsMsg ? <p role="status" className="text-xs text-slate-400">{prefsMsg}</p> : null}
+        <Button variant="ghost" onClick={savePrefs} loading={busy}>Save preferences</Button>
+      </Card>
+
+      <Card className="mb-3">
+        <h2 className="field-label">Your data</h2>
+        <p className="mb-2 text-xs text-slate-400">Download a copy of your personal data, or ask the agencies that hold your records to delete them. Some records must be kept for tax, customs and financial rules.</p>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="ghost" onClick={downloadMyData} loading={busy}>Download my data</Button>
+          <Button variant="ghost" onClick={requestDeletion} loading={busy}>Request deletion</Button>
+        </div>
+        {dataMsg ? <p role="status" className="mt-2 text-xs text-slate-400">{dataMsg}</p> : null}
+      </Card>
 
       <Card className="mb-3 space-y-2">
         <Row label="Currency" value={settings?.currency ?? 'USD'} />

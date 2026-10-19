@@ -27,6 +27,7 @@ for (const role of ['staff', 'customer'] as const) test(`owner invites verified 
   await invited.goto(link); await invited.getByRole('link', { name: 'Create my account' }).click();
   await invited.getByPlaceholder('e.g. Tendai Moyo').fill('Invited Staff');
   await invited.getByPlaceholder('you@example.com').fill(email); await invited.getByPlaceholder('••••••••').fill(PASS);
+  await invited.getByRole('checkbox').check();
   await invited.locator('form').getByRole('button', { name: 'Create account' }).click();
   await expect(invited).toHaveURL(/\/invite\//);
   await expect(invited.getByRole('status').filter({ hasText: 'Verification email requested' })).toBeVisible();

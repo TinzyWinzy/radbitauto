@@ -4,7 +4,8 @@ import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { db } from './db.ts';
 import type { ImportCaseDoc, PaymentDoc, QuotationDoc } from './types.ts';
 import { contextFrom, requireStaff } from './claims.ts';
-import { bestEffortNotify, ts } from './audits.ts';
+import { ts } from './audits.ts';
+import { enqueueNotification } from './notifications.ts';
 import { validatePaymentProof } from './documents.ts';
 
 function sha1(value: string): string {
@@ -139,7 +140,6 @@ export const confirmPayment = onCall<{ paymentId: string; note?: string }>(async
   const ctx = contextFrom(request);
   const staff = await requireStaff(ctx);
 
-  let confirmedCaseId = '';
   await db.runTransaction(async (txn) => {
     await transactionWriteCheck(txn, staff.companyId);
     const ref = db.collection('payments').doc(request.data.paymentId);
@@ -195,14 +195,12 @@ export const confirmPayment = onCall<{ paymentId: string; note?: string }>(async
       detail: { caseId: payment.caseId, quotationId: payment.quotationId, note: request.data.note ?? null },
       createdAt: now,
     });
-    confirmedCaseId = payment.caseId;
-  });
-
-  await bestEffortNotify({
-    caseId: confirmedCaseId,
-    type: 'payment_confirmed',
-    title: 'Payment confirmed',
-    body: 'Payment confirmed on your import.',
+    enqueueNotification(txn, {
+      companyId: staff.companyId,
+      caseId: payment.caseId,
+      eventKey: 'payment_confirmed',
+      data: { caseNum: caseDoc.caseNum },
+    });
   });
 
   return { paymentId: request.data.paymentId, status: 'confirmed' as const };

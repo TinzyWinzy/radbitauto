@@ -21,6 +21,7 @@ import type {
   VehicleDoc,
 } from './types';
 import type { StaffDoc } from './types';
+import type { UserProfileDoc } from './types';
 
 export { useOnline } from './online';
 
@@ -196,6 +197,22 @@ export function useCompanySettings(companyId: string | undefined): CompanySettin
     });
     return () => unsub();
   }, [companyId]);
+  return data;
+}
+
+export function useUserProfile(uid: string | undefined): UserProfileDoc | null {
+  const [data, setData] = useState<UserProfileDoc | null>(null);
+  useEffect(() => {
+    if (!uid) {
+      setData(null);
+      return;
+    }
+    const ref = doc(db, 'users', uid);
+    const unsub = onSnapshot(ref, (snap) => {
+      setData(snap.exists() ? (snap.data() as UserProfileDoc) : null);
+    });
+    return () => unsub();
+  }, [uid]);
   return data;
 }
 

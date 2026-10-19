@@ -14,8 +14,12 @@ export { bootstrapCompany, createStaff, linkCustomer, deactivateAccount, ensureB
 export { claimPlatformAdmin, backfillVehicleCustomers } from './platform.ts';
 export { searchCases } from './search.ts';
 export { onUserCreate } from './auth.ts';
+export { onNotificationOutbox } from './notifications.ts';
 export { registerAgency } from './registration.ts';
 export { createCustomerRecord } from './customers.ts';
+export { recordConsent } from './consent.ts';
+export { updateNotificationPrefs } from './preferences.ts';
+export { exportMyData, requestErasure, listErasureRequests, resolveErasureRequest } from './dataRights.ts';
 export { saveCaseSupplier } from './supplier.ts';
 export { createInvitation, acceptInvitation, listInvitations, revokeInvitation, invitationInfo, acceptQuotation, correctPayment, agencyReport, dashboardOverview, setAgencyAccess } from './operations.ts';
 

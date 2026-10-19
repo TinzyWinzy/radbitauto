@@ -29,6 +29,7 @@ test('guidebook dealer shots: setup to showroom', async ({ page }) => {
   await page.getByPlaceholder('e.g. Tendai Moyo').fill('Guide Owner');
   await page.getByPlaceholder('you@example.com').fill(email);
   await page.getByPlaceholder('••••••••').fill(PASS);
+  await page.getByRole('checkbox').check();
   await page.locator('form').getByRole('button', { name: 'Create account' }).click();
   await expect(page).toHaveURL(/\/agency\/setup$/);
   await expect(page.locator('h1').first()).toBeVisible();

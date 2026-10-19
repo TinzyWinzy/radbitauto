@@ -8,7 +8,8 @@ import type { ImportCaseDoc, PaymentDoc, QuotationDoc, TaxRateSet, VehicleDoc } 
 import { contextFrom, requireStaff } from './claims.ts';
 import { calculateImportQuotation, normalizeCharges, resolveActiveTaxRate } from './taxEngine.ts';
 import type { QuotationCharges } from './taxEngine.ts';
-import { bestEffortNotify, ts } from './audits.ts';
+import { ts } from './audits.ts';
+import { enqueueNotification } from './notifications.ts';
 
 function quotationId(companyId: string, caseId: string, version: number): string {
   return createHash('sha1').update(`${companyId}|${caseId}|${version}`).digest('hex');
@@ -231,6 +232,12 @@ export const issueQuotation = onCall<{ caseId: string; charges?: Partial<Quotati
       },
       createdAt: now,
     });
+    enqueueNotification(txn, {
+      companyId: staff.companyId,
+      caseId: request.data.caseId,
+      eventKey: 'quotation_issued',
+      data: { caseNum: latest.caseNum, totalDueCents: calc.totalDueCents },
+    });
 
     issuedQuotationId = id;
     issuedVersion = version;
@@ -243,13 +250,6 @@ export const issueQuotation = onCall<{ caseId: string; charges?: Partial<Quotati
     throw new HttpsError('aborted', 'quotation calculation did not complete');
   }
   const calc = calculation;
-
-  await bestEffortNotify({
-    caseId: request.data.caseId,
-    type: 'quotation_issued',
-    title: 'New quotation',
-    body: `Your quotation for ${caseDoc.caseNum} is ready. Total due: $${(calc.totalDueCents / 100).toFixed(2)}`,
-  });
 
   return {
     quotationId: issuedQuotationId,

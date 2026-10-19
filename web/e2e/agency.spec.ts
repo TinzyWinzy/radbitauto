@@ -13,6 +13,7 @@ test('two owners create isolated branded workspaces from the general signup path
       await page.getByPlaceholder('e.g. Tendai Moyo').fill(`Owner ${index}`);
       await page.getByPlaceholder('you@example.com').fill(email);
       await page.getByPlaceholder('••••••••').fill(PASS);
+      await page.getByRole('checkbox').check();
       await page.locator('form').getByRole('button', { name: 'Create account' }).click();
       await expect(page).toHaveURL(/\/agency\/setup$/);
       await expect(page.getByLabel('Agency name', { exact: true })).toBeHidden();

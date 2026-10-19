@@ -12,6 +12,7 @@ import {
   sendPasswordResetEmail,
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
+import { api } from '../lib/api';
 import { Button, Field, Input } from '../components/ui';
 import { Link, useSearchParams } from 'react-router-dom';
 import Seo from '../components/Seo';
@@ -26,6 +27,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [googleBusy, setGoogleBusy] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
   async function resetPassword() {
@@ -39,6 +41,11 @@ export default function Login() {
   // Completes a Google redirect sign-in (fallback path) when returning to /login.
   useEffect(() => {
     getRedirectResult(auth)
+      .then((cred) => {
+        if (cred && new URLSearchParams(window.location.search).get('mode') === 'signup') {
+          void api.recordConsent({ source: 'google_redirect' }).catch(() => undefined);
+        }
+      })
       .catch((err) => setError(friendlyAuthError(err)));
   }, []);
 
@@ -60,11 +67,16 @@ export default function Login() {
 
   async function signInGoogle() {
     setError(null);
+    if (mode === 'signup' && !agreed) {
+      setError('Please accept the service and privacy information to create an account.');
+      return;
+    }
     setGoogleBusy(true);
     try {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
       await signInWithPopup(auth, provider);
+      if (mode === 'signup') await api.recordConsent({ source: 'google' });
     } catch (err) {
       const code = (err as { code?: string })?.code ?? '';
       // Pop-up blockers / COOP-restricted browsers: fall back to full-page redirect.
@@ -88,6 +100,10 @@ export default function Login() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    if (mode === 'signup' && !agreed) {
+      setError('Please accept the service and privacy information to create an account.');
+      return;
+    }
     setBusy(true);
     try {
       if (mode === 'signin') {
@@ -95,6 +111,7 @@ export default function Login() {
       } else {
         const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
         await updateProfile(cred.user, { displayName: fullName.trim() });
+        await api.recordConsent({ source: 'signup' }).catch(() => undefined);
       }
     } catch (err) {
       setError(friendlyAuthError(err));
@@ -221,7 +238,18 @@ export default function Login() {
         </ul>
 
         <p className="mt-4 text-sm text-slate-300">{invited ? 'After sign-in, you will return to your invitation.' : 'Invited staff and customers should open their private invitation link.'}</p>
-        {mode === 'signup' ? <p className="mt-4 text-sm text-slate-300">Read our <Link to="/help" className="underline">service and privacy information</Link> before creating an account.</p> : null}
+        {mode === 'signup' ? (
+          <label className="mt-4 flex items-start gap-2 text-sm text-slate-300">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-600 bg-ink-900"
+              required
+            />
+            <span>I have read and accept the <Link to="/help" className="underline">service and privacy information</Link>.</span>
+          </label>
+        ) : null}
       </main>
       <footer className="marketing-footer"><Link to="/">Back to home</Link><Link to="/help">Support &amp; privacy</Link></footer>
     </div>

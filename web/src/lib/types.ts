@@ -32,6 +32,7 @@ export interface CustomerDoc {
   fullName: string;
   lastNameLower: string;
   phoneNumber: string;
+  email?: string;
   whatsappRef?: string;
   isActive: boolean;
   createdAt: Timestamp;
@@ -64,6 +65,23 @@ export interface StaffDoc {
   companyId: string;
   role: 'admin' | 'staff';
   isActive: boolean;
+  createdAt: Timestamp;
+}
+
+export interface NotificationPrefs {
+  email: boolean;
+  whatsapp: boolean;
+  sms: boolean;
+  marketing: boolean;
+}
+
+export interface UserProfileDoc {
+  email: string;
+  fullName: string;
+  phoneNumber?: string | null;
+  whatsappRef?: string;
+  isActive: boolean;
+  notificationPrefs?: Partial<NotificationPrefs>;
   createdAt: Timestamp;
 }
 

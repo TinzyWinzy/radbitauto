@@ -22,5 +22,6 @@ export async function signupAs(page: Page, name: string, email: string, pass = P
   await page.getByPlaceholder('e.g. Tendai Moyo').fill(name);
   await page.getByPlaceholder('you@example.com').fill(email);
   await page.getByPlaceholder('••••••••').fill(pass);
+  await page.getByRole('checkbox').check();
   await page.locator('form').getByRole('button', { name: 'Create account' }).click();
 }

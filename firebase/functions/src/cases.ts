@@ -5,7 +5,8 @@ import { FieldValue, type Firestore, type Transaction } from 'firebase-admin/fir
 import { db } from './db.ts';
 import type { ImportCaseDoc, PaymentDoc, QuotationDoc, StageUpdateDoc, VehicleDoc } from './types.ts';
 import { contextFrom, requireStaff } from './claims.ts';
-import { bestEffortNotify, ts } from './audits.ts';
+import { ts } from './audits.ts';
+import { enqueueNotification } from './notifications.ts';
 import { DOC_REQUIREMENTS, STAGES } from './constants.ts';
 
 function pad4(seq: number): string {
@@ -313,13 +314,12 @@ export const createCase = onCall<{ customerId: string; vehicleId?: string; statu
       resolvedCaseNum = caseNum;
       createdStage = currentFirstStage.key;
       createdStageLabel = currentFirstStage.label;
-    });
-
-    await bestEffortNotify({
-      caseId,
-      type: 'case_created',
-      title: 'Import enquiry received',
-      body: `Your import ${resolvedCaseNum} (${createdStageLabel}) has been registered.`,
+      enqueueNotification(txn, {
+        companyId: staff.companyId,
+        caseId,
+        eventKey: 'case_created',
+        data: { caseNum, stageLabel: createdStageLabel },
+      });
     });
 
     return { caseId, caseNum: resolvedCaseNum, currentStage: createdStage };
@@ -417,13 +417,12 @@ export const advanceImportStage = onCall<{
       detail: { toStage, fromStage: currentCase.currentStage },
       createdAt: ts(),
     });
-  });
-
-  await bestEffortNotify({
-    caseId,
-    type: 'status_update',
-    title: 'Import status updated',
-    body: `Your import ${caseDoc.caseNum} is now at: ${next.label}`,
+    enqueueNotification(txn, {
+      companyId: staff.companyId,
+      caseId,
+      eventKey: 'status_update',
+      data: { caseNum: caseDoc.caseNum, stageLabel: next.label },
+    });
   });
 
   return {
