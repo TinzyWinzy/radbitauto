@@ -1,4 +1,4 @@
-# Radbit Auto
+﻿# Radbit Auto
 
 Multi-tenant operations platform for Zimbabwean vehicle import and dealership businesses. Replaces WhatsApp threads and paper files with one system of record: where a vehicle is, what stage it is at, what the customer owes, and who is responsible.
 
@@ -62,4 +62,4 @@ Tenant deployments are configured per client. This repository contains no custom
 
 ## Author
 
-Tinotenda Brandon Duma, Radbit Studios. Contact: brandon@radbitstudios.com
+Tinotenda Brandon Duma, Radbit Studios. Contact: brandontinoz@gmail.com
